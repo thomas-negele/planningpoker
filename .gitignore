@@ -1,0 +1,13 @@
+# Dependencies and generated assets.
+web/node_modules/
+internal/webassets/dist/
+
+# Compiled binary.
+/planningpoker
+
+# macOS directory metadata.
+.DS_Store
+
+# Personal editor state and local work notes.
+.obsidian/
+/backlog.md

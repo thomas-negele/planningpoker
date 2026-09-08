@@ -1,0 +1,4 @@
+services:
+  planningpoker:
+    ports:
+      - "127.0.0.1:${PLANNINGPOKER_HTTP_PORT:-8080}:8080"

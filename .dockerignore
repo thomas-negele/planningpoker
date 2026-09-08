@@ -1,0 +1,32 @@
+# Everything here is either reproduced inside the image or has no business in it.
+# Keeping the build context small also keeps `docker build` fast, because the whole
+# context is sent to the daemon before the first instruction runs.
+
+# Reproduced inside the image: the Node stage runs `npm ci` and `npm run build`,
+# so a copy from the host would only risk baking in stale or platform-specific files.
+web/node_modules/
+internal/webassets/dist/
+
+# Version control history: large, and nothing in the build reads it.
+.git/
+.gitignore
+
+# Planning artifacts and project documentation: not part of the running application.
+openspec/
+.agents/
+.codex/
+.claude/
+.obsidian/
+CLAUDE.md
+
+# Local configuration and common private-key material must not enter an image
+# context. Keep an intentionally public template as `.env.example` if one is added.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Host build output and OS metadata.
+/planningpoker
+.DS_Store

@@ -1,0 +1,54 @@
+services:
+  planningpoker:
+    build: .
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${PLANNINGPOKER_MEMORY_LIMIT:-256m}
+    cpus: ${PLANNINGPOKER_CPU_LIMIT:-1.0}
+    pids_limit: ${PLANNINGPOKER_PID_LIMIT:-128}
+
+    logging:
+      driver: json-file
+      options:
+        max-size: ${PLANNINGPOKER_LOG_MAX_SIZE:-10m}
+        max-file: ${PLANNINGPOKER_LOG_MAX_FILES:-3}
+
+    environment:
+      # Container listen address (host:port). An empty host binds all container interfaces.
+      PLANNINGPOKER_LISTEN_ADDR: ":8080"
+
+      # Positive shutdown budget. Keep below stop_grace_period. Expired HTTP shutdown
+      # currently produces a nonzero exit status.
+      PLANNINGPOKER_SHUTDOWN_TIMEOUT: "5s"
+
+      # Positive retention period after creation or the last connection closes.
+      # Connected rooms do not expire through inactivity. Restarts discard all rooms.
+      PLANNINGPOKER_ROOM_GRACE_PERIOD: "5m"
+
+      # Positive capacity limits. New work is refused when its ceiling is reached;
+      # existing rooms and participants are retained.
+
+      # Maximum rooms held in memory, including rooms kept alive by open connections.
+      PLANNINGPOKER_MAX_ROOMS: "${PLANNINGPOKER_MAX_ROOMS:-50}"
+
+      # Maximum sockets per room. Multiple tabs for one participant count separately.
+      PLANNINGPOKER_MAX_CONNECTIONS_PER_ROOM: "${PLANNINGPOKER_MAX_CONNECTIONS_PER_ROOM:-40}"
+
+      # Maximum seats per room, including away participants. Rejoining adds no seat.
+      PLANNINGPOKER_MAX_PARTICIPANTS_PER_ROOM: "${PLANNINGPOKER_MAX_PARTICIPANTS_PER_ROOM:-20}"
+
+      # Messages per second per connection, with a burst of twice this value.
+      # Repeated flooding can close the connection. This is not an inactivity timeout.
+      PLANNINGPOKER_MESSAGE_RATE: "${PLANNINGPOKER_MESSAGE_RATE:-10}"
+
+    # Container deadline before SIGKILL; keep longer than the application shutdown budget.
+    stop_grace_period: 10s
+
+    # Available on the Docker network, with no host port published. A proxy on a
+    # shared network can reach http://planningpoker:8080.
+    expose:
+      - "8080"
