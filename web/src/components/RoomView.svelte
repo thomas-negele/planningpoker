@@ -241,7 +241,9 @@
   .room {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    /* Fill the height the app shell gives this screen, which is the viewport less
+       the legal footer when there is one. */
+    align-self: stretch;
     width: 100%;
     position: relative;
     transition: opacity 150ms ease;

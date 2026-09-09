@@ -27,6 +27,8 @@ const envMaxParticipantsPerRoom = "PLANNINGPOKER_MAX_PARTICIPANTS_PER_ROOM"
 
 const envMessageRate = "PLANNINGPOKER_MESSAGE_RATE"
 
+const envLegalDir = "PLANNINGPOKER_LEGAL_DIR"
+
 // Default capacity ceilings for a small deployment.
 const (
 	defaultMaxRooms               = 50
@@ -74,6 +76,13 @@ type config struct {
 	// are refused and sustained flooding can close the connection. This is not an
 	// inactivity timeout.
 	MessageRate int
+
+	// LegalDir is the directory holding the operator's privacy.html and imprint.html.
+	// Empty, the default, leaves legal notices switched off and reads no files at all.
+	// A relative path is resolved against the process working directory. When it is
+	// set, both documents must be present at startup or the process refuses to start;
+	// they are read once, so edited text takes effect on the next restart.
+	LegalDir string
 }
 
 // MessageBurst returns the per-connection burst allowance.
@@ -134,6 +143,10 @@ func loadConfig(getenv func(string) string) (config, error) {
 		}
 		*limit.into = value
 	}
+
+	// The path is not inspected here. Whether the directory holds usable documents is
+	// decided when they are loaded, so one place reports every reason they were refused.
+	cfg.LegalDir = getenv(envLegalDir)
 
 	return cfg, nil
 }

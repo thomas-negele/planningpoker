@@ -12,6 +12,10 @@ export default defineConfig({
     proxy: {
       '/api': { target: backend },
       '/ws': { target: backend, ws: true },
+      // The optional legal notices are read by the Go process from the operator's
+      // files, so development reaches them the same way production does — with the
+      // same PLANNINGPOKER_LEGAL_DIR and no frontend rebuild.
+      '/legal': { target: backend },
     },
   },
   build: {

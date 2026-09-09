@@ -15,6 +15,7 @@ import (
 
 	"de.thomasnegele.planningpoker/internal/game"
 	"de.thomasnegele.planningpoker/internal/hub"
+	"de.thomasnegele.planningpoker/internal/legal"
 	"github.com/coder/websocket"
 )
 
@@ -35,6 +36,19 @@ type testServer struct {
 	*httptest.Server
 	manager *hub.Manager
 	rooms   *RoomHandlers
+}
+
+// roomOptions wires the application the way a default installation runs: these
+// tests are about rooms, so legal notices are switched off, but their routes are
+// still registered, exactly as they are in a process nobody configured them for.
+func roomOptions(rooms *RoomHandlers) Options {
+	return Options{
+		Assets:      stub("assets"),
+		Socket:      http.HandlerFunc(rooms.Socket),
+		CreateGame:  http.HandlerFunc(rooms.CreateGame),
+		LegalPages:  legal.Pages(nil),
+		LegalStatus: legal.Status(nil),
+	}
 }
 
 func newTestServer(t *testing.T) *testServer {
@@ -64,11 +78,7 @@ func newTestServerTimed(t *testing.T, limits hub.Limits, rate RateLimit, heartbe
 	if deadline > 0 {
 		rooms.deadline = deadline
 	}
-	srv := httptest.NewServer(NewRouter(Options{
-		Assets:     stub("assets"),
-		Socket:     http.HandlerFunc(rooms.Socket),
-		CreateGame: http.HandlerFunc(rooms.CreateGame),
-	}))
+	srv := httptest.NewServer(NewRouter(roomOptions(rooms)))
 
 	t.Cleanup(func() {
 		srv.Close()
@@ -694,11 +704,7 @@ func TestShutdownLeavesNoGoroutineBehind(t *testing.T) {
 
 	manager := hub.NewManager(hub.SystemClock{}, rand.Reader, testGrace, testLimits)
 	rooms := NewRoomHandlers(manager, rand.Reader, testRate)
-	srv := httptest.NewServer(NewRouter(Options{
-		Assets:     stub("assets"),
-		Socket:     http.HandlerFunc(rooms.Socket),
-		CreateGame: http.HandlerFunc(rooms.CreateGame),
-	}))
+	srv := httptest.NewServer(NewRouter(roomOptions(rooms)))
 
 	inner := &testServer{Server: srv, manager: manager, rooms: rooms}
 	for range 3 {

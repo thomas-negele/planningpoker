@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"crypto/rand"
-	"net/http"
 	"net/http/httptest"
 	"runtime"
 	"testing"
@@ -183,11 +182,7 @@ func TestShutdownFinishesWithinItsBudgetDespiteASilentClient(t *testing.T) {
 	rooms.heartbeat = time.Hour
 	rooms.deadline = time.Hour
 
-	srv := httptest.NewServer(NewRouter(Options{
-		Assets:     stub("assets"),
-		Socket:     http.HandlerFunc(rooms.Socket),
-		CreateGame: http.HandlerFunc(rooms.CreateGame),
-	}))
+	srv := httptest.NewServer(NewRouter(roomOptions(rooms)))
 	inner := &testServer{Server: srv, manager: manager, rooms: rooms}
 
 	roomID := inner.createGame(t)

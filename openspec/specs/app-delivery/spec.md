@@ -32,7 +32,9 @@ NOT cause the browser to issue a request to any origin other than the one it was
 ### Requirement: Client-side routes survive a hard reload
 
 The server SHALL return the application's `index.html` document, with HTTP status 200, for any
-request path that does not correspond to a file in the built frontend. This is what makes a
+frontend request path that does not correspond to a file in the built frontend. API, WebSocket
+and `/legal` routes are handled separately; an unavailable resource under `/legal` SHALL return
+404 instead of this fallback. This is what makes a
 client-side route such as `/g/<room-id>` work when it is opened directly or reloaded, rather than
 returning "not found".
 
@@ -42,8 +44,8 @@ visibly instead of silently delivering HTML where JavaScript or CSS was expected
 
 #### Scenario: Unknown application path returns the document
 
-- **WHEN** a browser requests a path that matches no file in the built frontend, for example
-  `/g/abc123`
+- **WHEN** a browser requests a frontend route that matches no file in the built frontend, for
+  example `/g/abc123`
 - **THEN** the server responds with status 200 and the content of `index.html`
 
 #### Scenario: Existing asset is served as itself

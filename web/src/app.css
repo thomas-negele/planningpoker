@@ -43,16 +43,17 @@ body {
   font-family: var(--font-stack);
   background: var(--background);
   color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
+/*
+ * A column at least as tall as the viewport: the current screen takes the space
+ * it needs and the legal footer, when there is one, sits underneath it. The
+ * screen itself does the centring, so a short screen is still centred.
+ */
 #app {
-  width: 100%;
+  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
 }
 
 button {

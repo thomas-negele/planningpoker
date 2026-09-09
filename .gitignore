@@ -8,6 +8,9 @@ internal/webassets/dist/
 # macOS directory metadata.
 .DS_Store
 
+# Operator legal notices: they name a real person and are not ours to commit.
+/legal/
+
 # Personal editor state and local work notes.
 .obsidian/
 /backlog.md

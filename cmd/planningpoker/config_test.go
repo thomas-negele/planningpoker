@@ -234,6 +234,40 @@ func TestInvalidCapacityLimitIsAnErrorNamingVariableAndValue(t *testing.T) {
 	}
 }
 
+func TestUnsetLegalDirectoryLeavesNoticesOff(t *testing.T) {
+	// Legal notices are opt-in. A configuration that says nothing about them must
+	// leave them switched off, because the alternative would be a default
+	// installation that fails to start unless it is given documents.
+	for _, pairs := range []map[string]string{
+		{},
+		{envLegalDir: ""},
+		{envListenAddr: ":9000", envRoomGracePeriod: "1m"}, // others set, this one not
+	} {
+		cfg, err := loadConfig(env(pairs))
+		if err != nil {
+			t.Fatalf("loadConfig(%v) returned an error: %v", pairs, err)
+		}
+		if cfg.LegalDir != "" {
+			t.Errorf("loadConfig(%v).LegalDir = %q, want it empty", pairs, cfg.LegalDir)
+		}
+	}
+}
+
+func TestLegalDirectoryIsTakenVerbatim(t *testing.T) {
+	// Whether the path is usable is decided when the documents are loaded, so the
+	// configuration passes on exactly what the operator wrote — including a
+	// relative path, which is resolved against the process working directory.
+	for _, dir := range []string{"/legal", "./legal", "legal", "/srv/planningpoker/notices"} {
+		cfg, err := loadConfig(env(map[string]string{envLegalDir: dir}))
+		if err != nil {
+			t.Fatalf("loadConfig with %q returned an error: %v", dir, err)
+		}
+		if cfg.LegalDir != dir {
+			t.Errorf("LegalDir = %q, want %q", cfg.LegalDir, dir)
+		}
+	}
+}
+
 func TestMessageBurstIsAboveTheSustainedRate(t *testing.T) {
 	// The burst exists so that a handful of intents arriving together — a page
 	// reconnecting, or a vote followed at once by a reveal — is not mistaken for a
@@ -259,6 +293,7 @@ func TestTheSettingsAreIndependent(t *testing.T) {
 		envMaxConnectionsPerRoom:  "12",
 		envMaxParticipantsPerRoom: "13",
 		envMessageRate:            "14",
+		envLegalDir:               "/legal",
 	}))
 	if err != nil {
 		t.Fatalf("loadConfig: %v", err)
@@ -283,5 +318,8 @@ func TestTheSettingsAreIndependent(t *testing.T) {
 	}
 	if cfg.MessageRate != 14 {
 		t.Errorf("MessageRate = %d", cfg.MessageRate)
+	}
+	if cfg.LegalDir != "/legal" {
+		t.Errorf("LegalDir = %q", cfg.LegalDir)
 	}
 }

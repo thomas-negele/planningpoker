@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"de.thomasnegele.planningpoker/internal/hub"
+	"de.thomasnegele.planningpoker/internal/legal"
 	"de.thomasnegele.planningpoker/internal/transport"
 	"de.thomasnegele.planningpoker/internal/webassets"
 )
@@ -31,6 +32,18 @@ func run() error {
 	cfg, err := loadConfig(os.Getenv)
 	if err != nil {
 		return err
+	}
+
+	// Read the optional notices before anything else starts. An operator who
+	// configured them but left them incomplete finds out here, in a process that
+	// has not yet accepted a connection, rather than from a visitor following a
+	// broken link.
+	notices, err := legal.Load(cfg.LegalDir)
+	if err != nil {
+		return fmt.Errorf("%s=%q: %w", envLegalDir, cfg.LegalDir, err)
+	}
+	if notices != nil {
+		log.Printf("serving legal notices from %s", cfg.LegalDir)
 	}
 
 	manager := hub.NewManager(hub.SystemClock{}, rand.Reader, cfg.RoomGracePeriod, hub.Limits{
@@ -51,6 +64,11 @@ func run() error {
 		Assets:     webassets.New(),
 		Socket:     http.HandlerFunc(rooms.Socket),
 		CreateGame: http.HandlerFunc(rooms.CreateGame),
+
+		// Registered whether or not notices exist: when they do not, the subtree
+		// answers 404 instead of letting a notice URL reach the application document.
+		LegalPages:  legal.Pages(notices),
+		LegalStatus: legal.Status(notices),
 	})
 
 	server := &http.Server{

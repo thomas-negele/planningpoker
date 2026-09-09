@@ -15,9 +15,11 @@ func stub(marker string) http.Handler {
 
 func testRouter() http.Handler {
 	return NewRouter(Options{
-		Assets:     stub("assets"),
-		Socket:     stub("socket"),
-		CreateGame: stub("createGame"),
+		Assets:      stub("assets"),
+		Socket:      stub("socket"),
+		CreateGame:  stub("createGame"),
+		LegalPages:  stub("legalPages"),
+		LegalStatus: stub("legalStatus"),
 	})
 }
 
@@ -30,6 +32,16 @@ func TestRouterSendsPathsToTheRightHandler(t *testing.T) {
 		{http.MethodGet, "/", "assets"},
 		{http.MethodGet, "/g/ABC123", "assets"},
 		{http.MethodGet, "/assets/index-abc123.js", "assets"},
+		{http.MethodGet, "/api/legal", "legalStatus"},
+		{http.MethodGet, "/legal", "legalPages"},
+		{http.MethodGet, "/legal/privacy", "legalPages"},
+		{http.MethodGet, "/legal/imprint", "legalPages"},
+		{http.MethodGet, "/legal/style.css", "legalPages"},
+		// Reserving the whole subtree is the point: an unknown name below it must
+		// reach the legal handler, which refuses it, rather than the asset handler,
+		// which would answer with the application's own HTML document.
+		{http.MethodGet, "/legal/anything-else", "legalPages"},
+		{http.MethodPost, "/legal/privacy", "legalPages"},
 	} {
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))

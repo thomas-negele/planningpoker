@@ -73,6 +73,24 @@ Application defaults:
 Container defaults: 256 MiB memory, 1 CPU, 128 PIDs and three 10 MiB log files.
 These are starting budgets; capacity increases may require more resources.
 
+### Optional legal pages
+
+Off unless configured. Put your own `privacy.html` and `imprint.html` in a directory,
+point `PLANNINGPOKER_LEGAL_DIR` at it, and they are served at `/legal/privacy` and
+`/legal/imprint` and linked from the footer. Use `/legal/style.css` for styling; the
+pages may load nothing from another host. In Compose:
+
+```yaml
+environment:
+  PLANNINGPOKER_LEGAL_DIR: "/legal"
+volumes:
+  - ./legal:/legal:ro
+```
+
+Both files are read at startup, so editing them needs a restart — which ends running
+games — but no rebuild. A missing or unreadable file stops the process with a message
+naming it. Keep completed documents out of Git; `legal/` is already ignored.
+
 ## Development
 
 Requires Go matching [go.mod](go.mod) and Node.js with npm. The Docker build uses
@@ -88,7 +106,7 @@ go run ./cmd/planningpoker
 cd web && npm run dev
 ```
 
-Open <http://localhost:5173>. Vite provides hot reloading and proxies `/api` and `/ws`
+Open <http://localhost:5173>. Vite provides hot reloading and proxies `/api`, `/ws` and `/legal`
 to Go on port 8080. No `npm run build` is needed. Development omits the production CSP;
 the container embeds the built frontend and applies it.
 
@@ -113,6 +131,7 @@ and rebuild. Build the image for the architecture of the target host.
 | `internal/game/` | Game rules, no I/O |
 | `internal/hub/` | Room lifecycle and concurrency |
 | `internal/transport/` | HTTP and WebSocket protocol |
+| `internal/legal/` | Optional operator legal pages |
 | `internal/webassets/` | Frontend assets and routing fallback |
 | `web/` | Svelte frontend |
 | [openspec/specs/](openspec/specs/) | Behaviour contracts |
