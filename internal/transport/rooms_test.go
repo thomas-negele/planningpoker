@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -108,6 +109,27 @@ func (s *testServer) createGame(t *testing.T) string {
 		t.Fatal("creating a game returned an empty room identifier")
 	}
 	return body.RoomID
+}
+
+func (s *testServer) createGameWithDeck(t *testing.T, deck string) string {
+	t.Helper()
+	body, err := json.Marshal(createGameRequest{Deck: deck})
+	if err != nil {
+		t.Fatalf("encoding game settings: %v", err)
+	}
+	res, err := http.Post(s.URL+"/api/games", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("creating a game: %v", err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("creating a %q game: status %d", deck, res.StatusCode)
+	}
+	var response createGameResponse
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		t.Fatalf("decoding the create-game response: %v", err)
+	}
+	return response.RoomID
 }
 
 // client is one browser: a socket plus the cookies it was given.
@@ -233,6 +255,49 @@ func TestCreatingGamesProducesIndependentRooms(t *testing.T) {
 	}
 }
 
+func TestCreatingAGameMaySelectFibonacci(t *testing.T) {
+	srv := newTestServer(t)
+	roomID := srv.createGameWithDeck(t, game.FibonacciDeckName)
+
+	c := srv.dial(t, roomID)
+	view := c.state(t)
+	if view.Room.Deck.Name != game.FibonacciDeckName {
+		t.Errorf("created room deck = %q, want Fibonacci", view.Room.Deck.Name)
+	}
+	wantCards := []string{"0", "½", "1", "2", "3", "5", "8", "13", "21", "?", "☕"}
+	if !slices.Equal(view.Room.Deck.Cards, wantCards) {
+		t.Errorf("Fibonacci cards = %v, want %v", view.Room.Deck.Cards, wantCards)
+	}
+}
+
+func TestCreatingAGameWithoutABodyKeepsTShirtDefault(t *testing.T) {
+	srv := newTestServer(t)
+	roomID := srv.createGame(t)
+
+	c := srv.dial(t, roomID)
+	if got := c.state(t).Room.Deck.Name; got != game.TShirtDeckName {
+		t.Errorf("default deck = %q, want T-shirt", got)
+	}
+}
+
+func TestUnknownCreationDeckIsAClientErrorAndCreatesNothing(t *testing.T) {
+	srv := newTestServer(t)
+	before := srv.manager.Len()
+	body := bytes.NewBufferString(`{"deck":"custom"}`)
+
+	res, err := http.Post(srv.URL+"/api/games", "application/json", body)
+	if err != nil {
+		t.Fatalf("creating a game: %v", err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", res.StatusCode, http.StatusBadRequest)
+	}
+	if got := srv.manager.Len(); got != before {
+		t.Errorf("manager grew from %d rooms to %d after invalid deck", before, got)
+	}
+}
+
 func TestConnectingToAnUnusedNameCreatesTheRoom(t *testing.T) {
 	// The whole of what makes an old link work and what puts an interrupted group
 	// back together: the connection creates the room it was looking for.
@@ -247,6 +312,9 @@ func TestConnectingToAnUnusedNameCreatesTheRoom(t *testing.T) {
 	}
 	if len(view.Room.Participants) != 0 {
 		t.Errorf("a freshly created room has %d participants, want 0", len(view.Room.Participants))
+	}
+	if view.Room.Deck.Name != game.TShirtDeckName {
+		t.Errorf("implicitly created room deck = %q, want T-shirt", view.Room.Deck.Name)
 	}
 	if srv.manager.Len() != before+1 {
 		t.Errorf("rooms went from %d to %d, want one more", before, srv.manager.Len())
@@ -411,6 +479,65 @@ func TestEveryChangeReachesEveryConnection(t *testing.T) {
 	for i, c := range clients {
 		if got := len(c.state(t).Room.Participants); got != 1 {
 			t.Errorf("connection %d sees %d participants, want 1", i, got)
+		}
+	}
+}
+
+func TestDeckChangesFollowRoundTimingAndReachEveryParticipant(t *testing.T) {
+	srv := newTestServer(t)
+	roomID := srv.createGame(t)
+
+	actor := srv.dial(t, roomID)
+	actor.state(t)
+	actor.seat(t, "Thomas")
+	observer := srv.dial(t, roomID)
+	observer.state(t)
+	actor.state(t)
+	observer.seat(t, "Anna")
+	actor.state(t)
+
+	actor.send(t, clientMessage{Type: intentVote, Card: string(game.CardM)})
+	actor.state(t)
+	observer.state(t)
+	actor.send(t, clientMessage{Type: intentSetDeck, Deck: game.FibonacciDeckName})
+	if got := actor.refusal(t).Code; got != codeDeckLocked {
+		t.Errorf("deck change during voting code = %q, want %q", got, codeDeckLocked)
+	}
+
+	actor.send(t, clientMessage{Type: intentReveal})
+	actor.state(t)
+	observer.state(t)
+	actor.send(t, clientMessage{Type: intentSetDeck, Deck: game.FibonacciDeckName})
+	for i, c := range []*client{actor, observer} {
+		view := c.state(t).Room
+		if view.Deck.Name != game.TShirtDeckName || view.PendingDeck == nil ||
+			view.PendingDeck.Name != game.FibonacciDeckName {
+			t.Errorf("client %d active/pending = %+v/%+v", i, view.Deck, view.PendingDeck)
+		}
+		if view.Results == nil || view.Results.Cards[0].Card != string(game.CardM) {
+			t.Errorf("client %d lost revealed T-shirt results: %+v", i, view.Results)
+		}
+	}
+
+	observer.send(t, clientMessage{Type: intentSetDeck, Deck: game.TShirtDeckName})
+	for i, c := range []*client{actor, observer} {
+		view := c.state(t).Room
+		if view.PendingDeck == nil || view.PendingDeck.Name != game.TShirtDeckName {
+			t.Errorf("client %d latest pending deck = %+v, want T-shirt", i, view.PendingDeck)
+		}
+	}
+	actor.send(t, clientMessage{Type: intentSetDeck, Deck: game.FibonacciDeckName})
+	actor.state(t)
+	observer.state(t)
+
+	actor.send(t, clientMessage{Type: intentNewRound})
+	for i, c := range []*client{actor, observer} {
+		view := c.state(t).Room
+		if view.Deck.Name != game.FibonacciDeckName || view.PendingDeck != nil || view.Revealed {
+			t.Errorf("client %d new-round deck state = %+v", i, view)
+		}
+		if view.Participants[0].Voted || view.Participants[1].Voted {
+			t.Errorf("client %d kept votes in the new round: %+v", i, view.Participants)
 		}
 	}
 }
@@ -609,6 +736,7 @@ func TestRefusalsAreSpecificPrivateAndHarmless(t *testing.T) {
 		want string
 	}{
 		{"a card outside the deck", clientMessage{Type: intentVote, Card: "XXL"}, codeCardNotInDeck},
+		{"an unknown deck", clientMessage{Type: intentSetDeck, Deck: "custom"}, codeUnknownDeck},
 		{"an empty name", clientMessage{Type: intentRename, Name: "  "}, codeNameEmpty},
 		{"an over-long name", clientMessage{Type: intentRename, Name: strings.Repeat("a", game.MaxNameLength+1)}, codeNameTooLong},
 	} {
@@ -645,6 +773,11 @@ func TestAnUnseatedConnectionMayNotAct(t *testing.T) {
 	c.send(t, clientMessage{Type: intentVote, Card: string(game.CardM)})
 	if got := c.refusal(t).Code; got != codeNotSeated {
 		t.Errorf("code = %q, want %q", got, codeNotSeated)
+	}
+
+	c.send(t, clientMessage{Type: intentSetDeck, Deck: game.FibonacciDeckName})
+	if got := c.refusal(t).Code; got != codeNotSeated {
+		t.Errorf("set-deck code = %q, want %q", got, codeNotSeated)
 	}
 }
 

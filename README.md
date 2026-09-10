@@ -6,7 +6,8 @@ with [OpenSpec](openspec/specs/).
 
 ## Features and limits
 
-- Share a room URL, choose a name and vote with `XS S M L XL ? ☕`.
+- Choose the default t-shirt deck (`XS S M L XL ? ☕`) or Fibonacci
+  (`0 ½ 1 2 3 5 8 13 21 ? ☕`), then share the room URL and vote together.
 - Votes stay hidden until a participant reveals them. Results show counts per card.
 - Any seated participant can reveal or start a new round.
 - No accounts or passwords: anyone who knows or guesses a room URL can join.

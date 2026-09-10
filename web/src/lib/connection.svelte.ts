@@ -11,6 +11,7 @@ import {
   type Room,
   type ServerMessage,
 } from './protocol';
+import type { DeckName } from './decks';
 
 export type ConnectionStatus =
   /** A socket is being opened for the first time. */
@@ -107,6 +108,10 @@ export class RoomConnection {
 
   newRound(): void {
     this.#send({ type: 'newRound' });
+  }
+
+  setDeck(deck: DeckName): void {
+    this.#send({ type: 'setDeck', deck });
   }
 
   rename(name: string): void {

@@ -19,6 +19,7 @@ const (
 	intentVote     = "vote"
 	intentReveal   = "reveal"
 	intentNewRound = "newRound"
+	intentSetDeck  = "setDeck"
 	intentRename   = "rename"
 )
 
@@ -27,6 +28,7 @@ type clientMessage struct {
 	Type string `json:"type"`
 	Name string `json:"name,omitempty"`
 	Card string `json:"card,omitempty"`
+	Deck string `json:"deck,omitempty"`
 }
 
 // decodeClientMessage parses JSON and rejects missing or unknown intent names.
@@ -38,7 +40,7 @@ func decodeClientMessage(raw []byte) (clientMessage, error) {
 	}
 
 	switch msg.Type {
-	case intentSeat, intentVote, intentReveal, intentNewRound, intentRename:
+	case intentSeat, intentVote, intentReveal, intentNewRound, intentSetDeck, intentRename:
 		return msg, nil
 	case "":
 		return clientMessage{}, fmt.Errorf("%w: no intent named", errMalformedMessage)
@@ -74,6 +76,7 @@ type stateMessage struct {
 type roomMessage struct {
 	ID                      string             `json:"id"`
 	Deck                    deckMessage        `json:"deck"`
+	PendingDeck             *deckMessage       `json:"pendingDeck,omitempty"`
 	Revealed                bool               `json:"revealed"`
 	Participants            []participantEntry `json:"participants"`
 	EveryonePresentHasVoted bool               `json:"everyonePresentHasVoted"`
@@ -132,6 +135,8 @@ const (
 	codeNameEmpty     = "name_empty"
 	codeNameTooLong   = "name_too_long"
 	codeCardNotInDeck = "card_not_in_deck"
+	codeUnknownDeck   = "unknown_deck"
+	codeDeckLocked    = "deck_locked"
 	codeRoundRevealed = "round_revealed"
 	codeBadMessage    = "bad_message"
 	codeInvalidRoomID = "invalid_room_id"
@@ -157,6 +162,8 @@ var refusals = []refusal{
 	{game.ErrEmptyName, codeNameEmpty},
 	{game.ErrNameTooLong, codeNameTooLong},
 	{game.ErrCardNotInDeck, codeCardNotInDeck},
+	{game.ErrUnknownDeck, codeUnknownDeck},
+	{game.ErrDeckLocked, codeDeckLocked},
 	{game.ErrRoundRevealed, codeRoundRevealed},
 	{game.ErrInvalidRoomID, codeInvalidRoomID},
 	{game.ErrShortRandomRead, codeServerError},
@@ -205,17 +212,7 @@ func encodeUpdate(u hub.Update) ([]byte, error) {
 
 // roomFromView converts domain snapshots to their wire representation.
 func roomFromView(v game.View) roomMessage {
-	deck := deckMessage{
-		Name:  v.Deck.Name,
-		Cards: make([]string, 0, len(v.Deck.Cards)),
-		Scale: make([]string, 0, len(v.Deck.Scale)),
-	}
-	for _, c := range v.Deck.Cards {
-		deck.Cards = append(deck.Cards, string(c))
-	}
-	for _, c := range v.Deck.Scale {
-		deck.Scale = append(deck.Scale, string(c))
-	}
+	deck := deckFromView(v.Deck)
 
 	participants := make([]participantEntry, 0, len(v.Participants))
 	for _, p := range v.Participants {
@@ -234,6 +231,10 @@ func roomFromView(v game.View) roomMessage {
 		Participants:            participants,
 		EveryonePresentHasVoted: v.EveryonePresentHasVoted,
 	}
+	if v.PendingDeck != nil {
+		pending := deckFromView(*v.PendingDeck)
+		msg.PendingDeck = &pending
+	}
 
 	// Leave Results nil until the domain supplies revealed results.
 	if v.Results != nil {
@@ -241,6 +242,21 @@ func roomFromView(v game.View) roomMessage {
 	}
 
 	return msg
+}
+
+func deckFromView(d game.Deck) deckMessage {
+	deck := deckMessage{
+		Name:  d.Name,
+		Cards: make([]string, 0, len(d.Cards)),
+		Scale: make([]string, 0, len(d.Scale)),
+	}
+	for _, c := range d.Cards {
+		deck.Cards = append(deck.Cards, string(c))
+	}
+	for _, c := range d.Scale {
+		deck.Scale = append(deck.Scale, string(c))
+	}
+	return deck
 }
 
 func resultsFromView(r game.Results) *resultsMessage {

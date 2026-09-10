@@ -2,6 +2,7 @@ package hub
 
 import (
 	"crypto/rand"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -294,6 +295,103 @@ func TestCreateAndLookup(t *testing.T) {
 	}
 	if _, ok := manager.Lookup("NEVEREXISTED"); ok {
 		t.Error("looking up an identifier that never existed returned a room")
+	}
+}
+
+func TestCreateMaySelectADeckWhileNamedRoomsKeepTheDefault(t *testing.T) {
+	manager, _ := newTestManager(t)
+	defer manager.Close()
+
+	fibonacci, err := manager.CreateWithDeck(game.FibonacciDeckName)
+	if err != nil {
+		t.Fatalf("CreateWithDeck: %v", err)
+	}
+	_, fibonacciView := attachView(t, fibonacci, "token-fibonacci")
+	if fibonacciView.Deck.Name != game.FibonacciDeckName {
+		t.Errorf("created deck = %q, want Fibonacci", fibonacciView.Deck.Name)
+	}
+
+	named, err := manager.EnsureRoom("team-alpha")
+	if err != nil {
+		t.Fatalf("EnsureRoom: %v", err)
+	}
+	_, namedView := attachView(t, named, "token-named")
+	if namedView.Deck.Name != game.TShirtDeckName {
+		t.Errorf("implicitly created named room deck = %q, want T-shirt", namedView.Deck.Name)
+	}
+}
+
+func TestUnknownDeckCreatesNoManagedRoom(t *testing.T) {
+	manager, _ := newTestManager(t)
+	defer manager.Close()
+
+	before := manager.Len()
+	room, err := manager.CreateWithDeck("custom")
+	if !errors.Is(err, game.ErrUnknownDeck) {
+		t.Fatalf("CreateWithDeck error = %v, want ErrUnknownDeck", err)
+	}
+	if room != nil {
+		t.Errorf("CreateWithDeck returned a room alongside refusal: %+v", room)
+	}
+	if got := manager.Len(); got != before {
+		t.Errorf("manager grew from %d rooms to %d after invalid deck", before, got)
+	}
+}
+
+func TestDeckChangesAreAuthorisedSerialisedAndBroadcast(t *testing.T) {
+	manager, _ := newTestManager(t)
+	defer manager.Close()
+	room, _ := manager.Create()
+
+	actor := attach(t, room, "token-a")
+	observer := attach(t, room, "token-b")
+	drain(actor)
+	drain(observer)
+
+	if !room.SetDeck(observer, game.FibonacciDeckName) {
+		t.Fatal("SetDeck was not queued")
+	}
+	if err := nextRefusal(t, observer); !errors.Is(err, game.ErrUnknownParticipant) {
+		t.Errorf("unseated SetDeck error = %v, want ErrUnknownParticipant", err)
+	}
+
+	room.Seat(actor, "Thomas")
+	nextView(t, actor)
+	nextView(t, observer)
+	room.SetDeck(actor, game.FibonacciDeckName)
+	for i, conn := range []*Conn{actor, observer} {
+		if got := nextView(t, conn).Deck.Name; got != game.FibonacciDeckName {
+			t.Errorf("connection %d active deck = %q, want Fibonacci", i, got)
+		}
+	}
+
+	room.Vote(actor, game.CardFive)
+	nextView(t, actor)
+	nextView(t, observer)
+	room.SetDeck(actor, game.TShirtDeckName)
+	if err := nextRefusal(t, actor); !errors.Is(err, game.ErrDeckLocked) {
+		t.Errorf("SetDeck after vote error = %v, want ErrDeckLocked", err)
+	}
+	assertNoUpdate(t, observer)
+
+	room.Reveal(actor)
+	nextView(t, actor)
+	nextView(t, observer)
+	room.SetDeck(actor, game.TShirtDeckName)
+	for i, conn := range []*Conn{actor, observer} {
+		view := nextView(t, conn)
+		if view.Deck.Name != game.FibonacciDeckName || view.PendingDeck == nil ||
+			view.PendingDeck.Name != game.TShirtDeckName {
+			t.Errorf("connection %d sees active/pending decks %+v/%+v", i, view.Deck, view.PendingDeck)
+		}
+	}
+
+	room.NewRound(actor)
+	for i, conn := range []*Conn{actor, observer} {
+		view := nextView(t, conn)
+		if view.Deck.Name != game.TShirtDeckName || view.PendingDeck != nil || view.Revealed {
+			t.Errorf("connection %d sees invalid new-round state: %+v", i, view)
+		}
 	}
 }
 

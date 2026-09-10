@@ -45,7 +45,12 @@ type roomState struct {
 
 // newRoom creates a room with a generated ID.
 func newRoom(clock Clock, random io.Reader, limits Limits) (*Room, error) {
-	g, err := game.NewRoom(random, limits.ParticipantsPerRoom)
+	return newRoomWithDeck(clock, random, limits, game.TShirtDeckName)
+}
+
+// newRoomWithDeck creates a room with a generated ID and a supported deck.
+func newRoomWithDeck(clock Clock, random io.Reader, limits Limits, deckName string) (*Room, error) {
+	g, err := game.NewRoomWithDeck(random, limits.ParticipantsPerRoom, deckName)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +178,11 @@ func (r *Room) Reveal(c *Conn) bool { return r.send(revealCommand{conn: c}) }
 // NewRound starts a fresh hidden round.
 func (r *Room) NewRound(c *Conn) bool { return r.send(newRoundCommand{conn: c}) }
 
+// SetDeck changes the current or next-round deck under the domain rules.
+func (r *Room) SetDeck(c *Conn, deckName string) bool {
+	return r.send(setDeckCommand{conn: c, deckName: deckName})
+}
+
 // Rename changes a participant's display name.
 func (r *Room) Rename(c *Conn, name string) bool { return r.send(renameCommand{conn: c, name: name}) }
 
@@ -291,6 +301,15 @@ type newRoundCommand struct{ conn *Conn }
 
 func (c newRoundCommand) apply(s *roomState) {
 	s.act(c.conn, func(pid game.ParticipantID) error { return s.game.NewRound(pid) })
+}
+
+type setDeckCommand struct {
+	conn     *Conn
+	deckName string
+}
+
+func (c setDeckCommand) apply(s *roomState) {
+	s.act(c.conn, func(pid game.ParticipantID) error { return s.game.SetDeck(pid, c.deckName) })
 }
 
 type renameCommand struct {

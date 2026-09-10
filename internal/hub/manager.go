@@ -57,6 +57,16 @@ func NewManager(clock Clock, random io.Reader, grace time.Duration, limits Limit
 
 // Create starts an empty room. Creation grants no seat or host privileges.
 func (m *Manager) Create() (*Room, error) {
+	return m.CreateWithDeck(game.TShirtDeckName)
+}
+
+// CreateWithDeck starts an empty room using one of the supported decks. Validate
+// before admission so a bad public choice consumes no room capacity.
+func (m *Manager) CreateWithDeck(deckName string) (*Room, error) {
+	if _, err := game.DeckByName(deckName); err != nil {
+		return nil, err
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -66,7 +76,7 @@ func (m *Manager) Create() (*Room, error) {
 		return nil, ErrAtCapacity
 	}
 
-	room, err := newRoom(m.clock, m.random, m.limits)
+	room, err := newRoomWithDeck(m.clock, m.random, m.limits, deckName)
 	if err != nil {
 		return nil, err
 	}

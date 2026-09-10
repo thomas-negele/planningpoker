@@ -185,6 +185,7 @@ func TestUnknownParticipantIsRefusedByEveryOperation(t *testing.T) {
 
 	operations := map[string]func() error{
 		"Vote":        func() error { return room.Vote(stranger, CardL) },
+		"SetDeck":     func() error { return room.SetDeck(stranger, FibonacciDeckName) },
 		"Reveal":      func() error { return room.Reveal(stranger) },
 		"NewRound":    func() error { return room.NewRound(stranger) },
 		"Rename":      func() error { return room.Rename(stranger, "Mallory") },

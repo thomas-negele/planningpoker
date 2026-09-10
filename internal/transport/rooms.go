@@ -155,6 +155,10 @@ type createGameResponse struct {
 	RoomID string `json:"roomId"`
 }
 
+type createGameRequest struct {
+	Deck string `json:"deck"`
+}
+
 // CreateGame creates a room without seating anyone or assigning a host role.
 func (h *RoomHandlers) CreateGame(w http.ResponseWriter, r *http.Request) {
 	// Reject cross-origin browser requests before allocating a room.
@@ -163,8 +167,21 @@ func (h *RoomHandlers) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	room, err := h.manager.Create()
+	request := createGameRequest{Deck: game.TShirtDeckName}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil && !errors.Is(err, io.EOF) {
+		http.Error(w, "could not understand the game settings", http.StatusBadRequest)
+		return
+	}
+	if request.Deck == "" {
+		request.Deck = game.TShirtDeckName
+	}
+
+	room, err := h.manager.CreateWithDeck(request.Deck)
 	if err != nil {
+		if errors.Is(err, game.ErrUnknownDeck) {
+			http.Error(w, "unknown room deck", http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, hub.ErrAtCapacity) {
 			// A distinct status lets the frontend report capacity separately from
 			// server errors.
@@ -458,6 +475,8 @@ func dispatch(room *hub.Room, hubConn *hub.Conn, msg clientMessage) bool {
 		return room.Reveal(hubConn)
 	case intentNewRound:
 		return room.NewRound(hubConn)
+	case intentSetDeck:
+		return room.SetDeck(hubConn, msg.Deck)
 	case intentRename:
 		return room.Rename(hubConn, msg.Name)
 	default:

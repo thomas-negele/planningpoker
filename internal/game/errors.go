@@ -16,6 +16,12 @@ var (
 	// ErrCardNotInDeck rejects cards outside the room's deck.
 	ErrCardNotInDeck = errors.New("card is not in this room's deck")
 
+	// ErrUnknownDeck rejects names outside the two supported room decks.
+	ErrUnknownDeck = errors.New("unknown room deck")
+
+	// ErrDeckLocked rejects deck changes after a hidden round has received a vote.
+	ErrDeckLocked = errors.New("the deck cannot change while voting is in progress")
+
 	// ErrRoundRevealed rejects voting after reveal.
 	ErrRoundRevealed = errors.New("the round has been revealed and its votes are final")
 

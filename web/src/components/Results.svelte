@@ -46,7 +46,7 @@
   const agreed = $derived(results.tally.length === 1 && voters > 1);
 </script>
 
-<div class="results">
+<div class="results" class:dense={deck.scale.length > 5}>
   <!-- Expose card/count pairs to assistive technology; the bars are decorative. -->
   <dl class="chart">
     {#each scale as row (row.card)}
@@ -181,5 +181,22 @@
     text-align: center;
     font-size: 0.78rem;
     color: var(--text-dim);
+  }
+
+  .results.dense {
+    gap: 0.25rem;
+  }
+
+  .results.dense .chart {
+    gap: 0.12rem;
+  }
+
+  .results.dense .track {
+    height: 0.6rem;
+  }
+
+  .results.dense .chart.asides {
+    padding-top: 0.25rem;
+    margin-top: 0.05rem;
   }
 </style>

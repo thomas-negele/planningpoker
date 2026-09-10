@@ -104,6 +104,57 @@ func TestHiddenRoundNeverDisclosesAVote(t *testing.T) {
 	}
 }
 
+func TestHiddenFibonacciRoundNeverDisclosesAVote(t *testing.T) {
+	room := newTestRoom(t)
+	id := join(t, room, "anna")
+	if err := room.SetDeck(id, FibonacciDeckName); err != nil {
+		t.Fatalf("SetDeck: %v", err)
+	}
+	for i, card := range []Card{CardZero, CardHalf, CardOne, CardThirteen, CardTwentyOne} {
+		voter := id
+		if i > 0 {
+			voter = join(t, room, []string{"", "bert", "cora", "dora", "emil"}[i])
+		}
+		if err := room.Vote(voter, card); err != nil {
+			t.Fatalf("Vote(%q): %v", card, err)
+		}
+	}
+
+	view := room.View()
+	var found []string
+	cardValuesReachableFrom(reflect.ValueOf(view), "View", &found)
+	if len(found) > 0 {
+		t.Errorf("a hidden Fibonacci round disclosed card values:\n  %s", strings.Join(found, "\n  "))
+	}
+	for _, p := range view.Participants {
+		if !p.Voted {
+			t.Errorf("participant %q voted but is not shown as having voted", p.Name)
+		}
+	}
+
+	// Exercise the serialised shape as well as the typed value. Only the public
+	// deck may contain card values while the round is hidden.
+	view.Deck = Deck{}
+	view.RoomID = ""
+	for i := range view.Participants {
+		view.Participants[i].ID = ""
+	}
+	encoded, err := json.Marshal(view)
+	if err != nil {
+		t.Fatalf("marshalling the Fibonacci view: %v", err)
+	}
+	var decoded any
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("unmarshalling the Fibonacci view: %v", err)
+	}
+	for _, card := range FibonacciDeck().Cards {
+		if where := findCardInValues(decoded, string(card), "view"); where != "" {
+			t.Errorf("serialised hidden Fibonacci view contains card %q at %s:\n%s",
+				card, where, encoded)
+		}
+	}
+}
+
 func TestHiddenRoundLeaksNothingWhenSerialised(t *testing.T) {
 	// The same rule approached from the other side: whatever the transport layer
 	// does with this value, no card may come out of it. JSON stands in for
@@ -331,7 +382,8 @@ func TestEveryRefusalReturnsARecognisableError(t *testing.T) {
 
 	sentinels := []error{
 		ErrUnknownParticipant, ErrEmptyName, ErrNameTooLong,
-		ErrCardNotInDeck, ErrRoundRevealed, ErrShortRandomRead,
+		ErrCardNotInDeck, ErrRoundRevealed, ErrUnknownDeck, ErrDeckLocked,
+		ErrShortRandomRead,
 	}
 
 	refusals := map[string]func() error{
@@ -339,9 +391,17 @@ func TestEveryRefusalReturnsARecognisableError(t *testing.T) {
 		"empty name on join":     func() error { _, err := room.Join(fixedRandom(1), " "); return err },
 		"over-long name on join": func() error { _, err := room.Join(fixedRandom(1), strings.Repeat("a", MaxNameLength+1)); return err },
 		"card outside the deck":  func() error { return room.Vote(id, "XXL") },
+		"unknown deck":           func() error { return room.SetDeck(id, "custom") },
 		"broken randomness":      func() error { _, err := room.Join(failingRandom{}, "bert"); return err },
 		"empty name on rename":   func() error { return room.Rename(id, "") },
 		"rejoin by a stranger":   func() error { return room.Rejoin("nobody", "mallory") },
+	}
+
+	if err := room.Vote(id, CardM); err != nil {
+		t.Fatalf("Vote before locked deck change: %v", err)
+	}
+	if err := room.SetDeck(id, FibonacciDeckName); !matchesAny(err, sentinels) {
+		t.Errorf("deck change after vote: error %v matches none of the package's sentinel errors", err)
 	}
 
 	for name, refuse := range refusals {

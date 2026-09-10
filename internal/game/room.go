@@ -39,8 +39,9 @@ func newRound() round {
 // Room holds domain state and is not safe for concurrent use. The hub serializes
 // access.
 type Room struct {
-	id   RoomID
-	deck Deck
+	id          RoomID
+	deck        Deck
+	pendingDeck *Deck
 	// Keep participants in join order for stable snapshots.
 	participants []*participant
 	round        round
@@ -52,15 +53,37 @@ type Room struct {
 
 // NewRoom creates an empty room with a random ID and the T-shirt deck.
 func NewRoom(random io.Reader, maxParticipants int) (*Room, error) {
+	return NewRoomWithDeck(random, maxParticipants, TShirtDeckName)
+}
+
+// NewRoomWithDeck creates an empty room with a generated ID and a supported deck.
+func NewRoomWithDeck(random io.Reader, maxParticipants int, deckName string) (*Room, error) {
+	deck, err := DeckByName(deckName)
+	if err != nil {
+		return nil, err
+	}
 	id, err := newID(random)
 	if err != nil {
 		return nil, err
 	}
-	return NewRoomAt(RoomID(id), maxParticipants)
+	return newRoomAt(RoomID(id), maxParticipants, deck)
 }
 
 // NewRoomAt creates an empty room at a valid chosen or generated ID.
 func NewRoomAt(id RoomID, maxParticipants int) (*Room, error) {
+	return NewRoomAtWithDeck(id, maxParticipants, TShirtDeckName)
+}
+
+// NewRoomAtWithDeck creates an empty room at an ID with a supported deck.
+func NewRoomAtWithDeck(id RoomID, maxParticipants int, deckName string) (*Room, error) {
+	deck, err := DeckByName(deckName)
+	if err != nil {
+		return nil, err
+	}
+	return newRoomAt(id, maxParticipants, deck)
+}
+
+func newRoomAt(id RoomID, maxParticipants int, deck Deck) (*Room, error) {
 	if !ValidRoomID(id) {
 		return nil, ErrInvalidRoomID
 	}
@@ -69,7 +92,7 @@ func NewRoomAt(id RoomID, maxParticipants int) (*Room, error) {
 	}
 	return &Room{
 		id:              id,
-		deck:            TShirtDeck(),
+		deck:            deck,
 		round:           newRound(),
 		maxParticipants: maxParticipants,
 	}, nil
@@ -80,6 +103,30 @@ func (r *Room) ID() RoomID { return r.id }
 
 // Deck returns the room's deck.
 func (r *Room) Deck() Deck { return r.deck }
+
+// SetDeck changes an empty hidden round immediately or stores the choice for the
+// round after a reveal. A hidden vote locks the current deck.
+func (r *Room) SetDeck(id ParticipantID, deckName string) error {
+	if _, err := r.find(id); err != nil {
+		return err
+	}
+	deck, err := DeckByName(deckName)
+	if err != nil {
+		return err
+	}
+
+	if r.round.revealed {
+		r.pendingDeck = &deck
+		return nil
+	}
+	if len(r.round.votes) > 0 {
+		return ErrDeckLocked
+	}
+
+	r.deck = deck
+	r.pendingDeck = nil
+	return nil
+}
 
 // Join validates a name and allocates a seat. Duplicate display names are allowed.
 // Randomness is read before mutating the room so failures leave it unchanged.
@@ -197,6 +244,10 @@ func (r *Room) Reveal(id ParticipantID) error {
 func (r *Room) NewRound(id ParticipantID) error {
 	if _, err := r.find(id); err != nil {
 		return err
+	}
+	if r.pendingDeck != nil {
+		r.deck = *r.pendingDeck
+		r.pendingDeck = nil
 	}
 	r.round = newRound()
 	return nil

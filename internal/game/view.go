@@ -8,6 +8,9 @@ type View struct {
 	// Deck lists all selectable cards in display order.
 	Deck Deck
 
+	// PendingDeck is the deck selected for the next round after a reveal.
+	PendingDeck *Deck
+
 	Revealed bool
 
 	// Participants are ordered by joining time.
@@ -64,6 +67,10 @@ func (r *Room) View() View {
 		Revealed:                r.round.revealed,
 		Participants:            make([]ParticipantView, 0, len(r.participants)),
 		EveryonePresentHasVoted: r.EveryonePresentHasVoted(),
+	}
+	if r.pendingDeck != nil {
+		pending := *r.pendingDeck
+		v.PendingDeck = &pending
 	}
 
 	for _, p := range r.participants {

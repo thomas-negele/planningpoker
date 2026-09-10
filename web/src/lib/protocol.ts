@@ -1,10 +1,12 @@
 // Wire types and refusal codes mirror internal/transport/protocol.go.
 
+import type { DeckName } from './decks';
+
 /** A card is whatever the room's deck offers. The page never assumes which. */
 export type Card = string;
 
 export interface Deck {
-  name: string;
+  name: DeckName;
   cards: Card[];
   /**
    * Ordered subset of cards that express a size. Non-scale cards are derived by
@@ -41,6 +43,8 @@ export interface Results {
 export interface Room {
   id: string;
   deck: Deck;
+  /** Present only after a revealed round selected a deck for the next round. */
+  pendingDeck?: Deck;
   revealed: boolean;
   participants: Participant[];
   everyonePresentHasVoted: boolean;
@@ -68,6 +72,7 @@ export type ClientMessage =
   | { type: 'vote'; card: Card }
   | { type: 'reveal' }
   | { type: 'newRound' }
+  | { type: 'setDeck'; deck: DeckName }
   | { type: 'rename'; name: string };
 
 /** Application close code for an invalid room ID; browsers can read it after upgrade. */
@@ -88,6 +93,8 @@ const REFUSALS: Record<string, string> = {
   name_empty: 'Please enter a name.',
   name_too_long: 'That name is too long. Please use a shorter one.',
   card_not_in_deck: 'That card is not in this deck.',
+  unknown_deck: 'That deck is not available.',
+  deck_locked: 'The deck cannot be changed while voting is in progress.',
   round_revealed: 'The round has been revealed. Start a new round to vote again.',
   bad_message: 'The server did not understand that. Please reload the page.',
   invalid_room_id:

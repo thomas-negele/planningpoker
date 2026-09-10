@@ -2,6 +2,8 @@ package game
 
 import (
 	"crypto/rand"
+	"errors"
+	"reflect"
 	"slices"
 	"testing"
 )
@@ -48,6 +50,30 @@ func TestTShirtDeckScaleIsTheSizesOnly(t *testing.T) {
 	}
 }
 
+func TestFibonacciDeckHasExactlyTheAgreedCardsAndScaleInOrder(t *testing.T) {
+	deck := FibonacciDeck()
+
+	if deck.Name != FibonacciDeckName {
+		t.Errorf("deck name = %q, want %q", deck.Name, FibonacciDeckName)
+	}
+	wantCards := []Card{
+		CardZero, CardHalf, CardOne, CardTwo, CardThree, CardFive,
+		CardEight, CardThirteen, CardTwentyOne, CardUnknown, CardBreak,
+	}
+	if !slices.Equal(deck.Cards, wantCards) {
+		t.Errorf("deck cards = %v, want %v", deck.Cards, wantCards)
+	}
+	wantScale := wantCards[:9]
+	if !slices.Equal(deck.Scale, wantScale) {
+		t.Errorf("deck scale = %v, want %v", deck.Scale, wantScale)
+	}
+	for _, card := range []Card{CardUnknown, CardBreak} {
+		if slices.Contains(deck.Scale, card) {
+			t.Errorf("scale contains %q, which expresses no size", card)
+		}
+	}
+}
+
 func TestDeckIsNotSharedBetweenCallers(t *testing.T) {
 	// A caller who holds a Deck must not be able to reach back and reorder or
 	// truncate the deck every other room is using.
@@ -63,6 +89,39 @@ func TestDeckIsNotSharedBetweenCallers(t *testing.T) {
 	if second.Scale[0] != CardXS {
 		t.Errorf("modifying one deck changed the next one: first scale card is %q, want %q",
 			second.Scale[0], CardXS)
+	}
+
+	fibonacci, err := DeckByName(FibonacciDeckName)
+	if err != nil {
+		t.Fatalf("DeckByName: %v", err)
+	}
+	fibonacci.Cards[0] = "tampered"
+	fibonacci.Scale[0] = "tampered"
+	fresh, err := DeckByName(FibonacciDeckName)
+	if err != nil {
+		t.Fatalf("DeckByName again: %v", err)
+	}
+	if fresh.Cards[0] != CardZero || fresh.Scale[0] != CardZero {
+		t.Errorf("modifying one Fibonacci deck changed the next one: %+v", fresh)
+	}
+}
+
+func TestDeckLookupAcceptsOnlyTheTwoStableNames(t *testing.T) {
+	for name, want := range map[string]string{
+		TShirtDeckName: TShirtDeckName, FibonacciDeckName: FibonacciDeckName,
+	} {
+		deck, err := DeckByName(name)
+		if err != nil {
+			t.Errorf("DeckByName(%q): %v", name, err)
+		} else if deck.Name != want {
+			t.Errorf("DeckByName(%q) returned %q, want %q", name, deck.Name, want)
+		}
+	}
+
+	for _, name := range []string{"", "Fibonacci", "fib", "custom", " fibonacci "} {
+		if _, err := DeckByName(name); !errors.Is(err, ErrUnknownDeck) {
+			t.Errorf("DeckByName(%q) error = %v, want ErrUnknownDeck", name, err)
+		}
 	}
 }
 
@@ -104,5 +163,25 @@ func TestNewRoomUsesTheTShirtDeck(t *testing.T) {
 	}
 	if !slices.Equal(deck.Scale, TShirtDeck().Scale) {
 		t.Errorf("new room's scale = %v, want the t-shirt deck's", deck.Scale)
+	}
+}
+
+func TestNewRoomMayUseTheFibonacciDeck(t *testing.T) {
+	room, err := NewRoomWithDeck(rand.Reader, testMaxParticipants, FibonacciDeckName)
+	if err != nil {
+		t.Fatalf("NewRoomWithDeck: %v", err)
+	}
+	if got := room.Deck(); !reflect.DeepEqual(got, FibonacciDeck()) {
+		t.Errorf("new room's deck = %+v, want Fibonacci", got)
+	}
+}
+
+func TestNewRoomRejectsAnUnknownDeck(t *testing.T) {
+	room, err := NewRoomWithDeck(rand.Reader, testMaxParticipants, "custom")
+	if !errors.Is(err, ErrUnknownDeck) {
+		t.Fatalf("NewRoomWithDeck error = %v, want ErrUnknownDeck", err)
+	}
+	if room != nil {
+		t.Errorf("NewRoomWithDeck returned a room alongside the refusal: %+v", room)
 	}
 }

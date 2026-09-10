@@ -15,7 +15,7 @@
 </script>
 
 <footer>
-  <ul>
+  <ul class:compact={deck.cards.length > 7}>
     {#each deck.cards as card (card)}
       <li>
         <button
@@ -88,5 +88,21 @@
   .card:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  ul.compact {
+    gap: 0.4rem;
+  }
+
+  ul.compact .card {
+    width: 2.75rem;
+    height: 4rem;
+    font-size: 1rem;
+  }
+
+  @media (max-width: 30rem) {
+    footer {
+      padding-inline: 0.5rem;
+    }
   }
 </style>

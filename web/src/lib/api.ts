@@ -1,12 +1,18 @@
 
 
+import type { DeckName } from './decks';
+
 interface CreateGameResponse {
   roomId: string;
 }
 
 /** Create a room without seating anyone; return its invitation identifier. */
-export async function createGame(): Promise<string> {
-  const response = await fetch('/api/games', { method: 'POST' });
+export async function createGame(deck: DeckName = 't-shirt'): Promise<string> {
+  const response = await fetch('/api/games', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deck }),
+  });
   if (response.status === 503) {
     // Report capacity separately from other HTTP failures.
     throw new Error(

@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { RoomConnection } from '../lib/connection.svelte';
   import { forgetName, nameIsRemembered, rememberName } from '../lib/name';
   import type { Card } from '../lib/protocol';
+  import type { DeckName } from '../lib/decks';
   import ConnectionState from './ConnectionState.svelte';
   import Deck from './Deck.svelte';
   import NotAGame from './NotAGame.svelte';
@@ -11,6 +12,7 @@
   import NamePrompt from './NamePrompt.svelte';
   import Results from './Results.svelte';
   import NameDialog from './NameDialog.svelte';
+  import RoomSettingsDialog from './RoomSettingsDialog.svelte';
   import Seat from './Seat.svelte';
 
   interface Props {
@@ -96,6 +98,24 @@
   const myName = $derived(
     room?.participants.find((p) => p.id === connection.you)?.name ?? '',
   );
+
+  const deckLocked = $derived(
+    room !== null && !room.revealed && room.participants.some((participant) => participant.voted),
+  );
+  const deckLockMessage = 'The deck cannot be changed while voting is in progress.';
+  let editingSettings = $state(false);
+  let settingsButton = $state<HTMLButtonElement>();
+
+  function setDeck(deck: DeckName) {
+    connection.dismissRefusal();
+    connection.setDeck(deck);
+  }
+
+  async function closeSettings() {
+    editingSettings = false;
+    await tick();
+    settingsButton?.focus();
+  }
 </script>
 
 {#if connection.status === 'refused'}
@@ -135,7 +155,33 @@
         </button>
       </div>
 
-      <div class="right"><InviteControl {roomId} /></div>
+      <div class="right">
+        <span
+          class="settings-control"
+          class:locked={deckLocked}
+          data-tooltip={deckLocked ? deckLockMessage : undefined}
+        >
+          <button
+            bind:this={settingsButton}
+            class="settings-button"
+            aria-label={deckLocked ? `Room settings — ${deckLockMessage}` : 'Room settings'}
+            disabled={!connection.canAct || deckLocked}
+            onclick={() => (editingSettings = true)}
+          >
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
+              <path
+                d="M6.7 1.5h2.6l.4 1.6c.4.2.8.4 1.1.7l1.6-.5 1.3 2.3-1.2 1.1a5 5 0 010 1.3l1.2 1.1-1.3 2.3-1.6-.5c-.3.3-.7.5-1.1.7l-.4 1.6H6.7l-.4-1.6c-.4-.2-.8-.4-1.1-.7l-1.6.5-1.3-2.3L3.5 8a5 5 0 010-1.3L2.3 5.6l1.3-2.3 1.6.5c.3-.3.7-.5 1.1-.7l.4-1.6z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                stroke-linejoin="round"
+              />
+              <circle cx="8" cy="7.35" r="1.75" fill="none" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </button>
+        </span>
+        <InviteControl {roomId} />
+      </div>
     </header>
 
     <section class="table-area" aria-label="the table">
@@ -226,6 +272,17 @@
       oncancel={() => (editingName = false)}
     />
   {/if}
+
+  {#if editingSettings}
+    <RoomSettingsDialog
+      active={room.deck}
+      pending={room.pendingDeck}
+      revealed={room.revealed}
+      disabled={!connection.canAct || deckLocked}
+      onselect={setDeck}
+      oncancel={closeSettings}
+    />
+  {/if}
 {/if}
 
 <style>
@@ -276,6 +333,41 @@
     /* Anchor the clipboard fallback to this header. */
     position: relative;
     min-width: 0;
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .settings-control {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .settings-button {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-dim);
+  }
+
+  .settings-control.locked:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    width: max-content;
+    max-width: 15rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-raised);
+    color: var(--text);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    z-index: 4;
   }
 
   .table-area {
@@ -292,7 +384,7 @@
    */
   .arena {
     position: relative;
-    width: 32rem;
+    width: 36rem;
     aspect-ratio: 16 / 9;
   }
 
@@ -306,18 +398,17 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.9rem;
+    gap: 0.65rem;
     /* Inset the chart from the rounded table edges. */
-    padding: 1.9rem 3rem;
+    padding: 1.45rem 3rem;
     text-align: center;
   }
 
   /* Reserve chart height and constrain width to keep rows within the rounded felt. */
   .info {
-
-    min-height: 9.5rem;
+    min-height: 11.5rem;
     width: 100%;
-    max-width: 17rem;
+    max-width: 19rem;
     display: flex;
     flex-direction: column;
     /* Align the short status line directly beneath Reveal. */
@@ -335,7 +426,6 @@
    * Reveal is hidden to prevent layout shifts.
    */
   .action {
-
     height: 2.4rem;
     display: flex;
     align-items: center;
