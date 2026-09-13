@@ -23,10 +23,15 @@ table surface, which are hardcoded across the components today, become custom pr
 get a 6px corner radius. The card back stops being a stripe pattern and becomes a calm surface with
 a mark.
 
-**Typeface.** Geist ships with the application as a variable `.woff2` (latin subset, ~29 KB) served
-from its own origin, with its SIL Open Font License text beside it. It is placed in front of the
-existing system stack, which stays as the fallback. Nothing is fetched from a foreign host, and the
-existing `font-src 'self'` directive covers it without being widened.
+**Typeface.** Geist ships with the application as a variable `.woff2` taken from the upstream
+release (68 KB, 728 glyphs) and served from its own origin, with its SIL Open Font License text
+served beside it. It is placed in front of the existing system stack, which stays as the fallback.
+Nothing is fetched from a foreign host, and the existing `font-src 'self'` directive covers it
+without being widened.
+
+The smaller latin subset that Google Fonts offers was rejected after being measured rather than
+assumed: it lacks Polish, Czech, Hungarian, Romanian and Turkish letters, and the visible content of
+this application is names that people type themselves.
 
 **Entry screen.** The start control moves above the deck choice. The two decks become a bulleted
 list of options in which each deck names its own cards, comma-separated, so that somebody who has

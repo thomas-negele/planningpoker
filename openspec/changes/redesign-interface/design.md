@@ -58,10 +58,25 @@ step for seventeen components.
 
 ### The typeface is a committed variable woff2, with the system stack behind it
 
-Geist ships as one variable `.woff2` covering weights 400–700 in the latin subset, roughly 29 KB,
+Geist ships as one variable `.woff2` taken from the upstream release at
+`github.com/vercel/geist-font` (`fonts/Geist/webfonts/Geist[wght].woff2`, 68 KB, 728 glyphs),
 declared with a local `@font-face` and placed at the front of the existing `--font-stack`. The
 system stack stays behind it as the fallback, so a failed font load degrades to exactly today's
 appearance rather than to a serif default.
+
+Alternative considered and rejected: the latin subset Google Fonts serves, at 29 KB less than half
+the size. It fails on the application's actual content. Its 225 glyphs cover German, French,
+Spanish and Scandinavian letters but not Polish `ł ą ż ś ć`, Czech `č š ž`, Hungarian `ő ű`,
+Romanian `ș ț ă` or Turkish `ğ ş` — and this application's visible content is almost entirely names
+that people type themselves. A participant called Michał would have one letter of their name
+rendered in a substituted typeface, which is the same defect that ruled out Instrument Sans over
+`½`, only applied to a person's name. The upstream file also comes from the copyright holder rather
+than from a third party's modification of it, and it retains the licence metadata the subset drops.
+The 39 KB is paid once and cached.
+
+Subsetting the upstream file here, to latin-ext rather than latin, was also considered and rejected:
+it would reintroduce a build step and produce a modified version to keep in step with upstream, to
+save perhaps 25 KB.
 
 `font-display` is set to `swap`: the text is readable in the fallback face while the font loads, and
 reflows once. The alternative, `block`, hides the text for up to three seconds, which on a
@@ -75,6 +90,29 @@ typeface. Each candidate's rendering is in `docs/design/visual-language.html`.
 
 Geist's tighter default tracking is a known cost in the smallest uppercase labels, the `away` tag in
 particular; those get explicit letter-spacing rather than a different font.
+
+### The licence is served, not merely committed
+
+`OFL.txt` goes into the same asset directory as the font, which means it is bundled by Vite,
+embedded into the binary by `go:embed` and reachable over HTTP beside the font it belongs to.
+
+This is not tidiness. The Open Font License requires that "each copy" of the font carry the
+copyright notice and the licence, and this application distributes copies in three forms: the
+repository, the container image, and the file every browser downloads. Putting `OFL.txt` at the
+repository root would satisfy only the first of those — the container would then ship the font
+without its licence, and so would every page load. Placing it in the served asset tree satisfies all
+three at once, at the cost of one static file.
+
+The font's own metadata does not save us from this. The upstream binary carries the copyright notice
+in name record 0 and, in record 13, only the customary one-sentence pointer — "This Font Software is
+licensed under the SIL Open Font License, Version 1.1" plus a URL. A pointer to a licence is not the
+licence. (The Google Fonts subset drops record 13 altogether, which was one more reason not to use
+it.)
+
+No notice is required in the interface itself. The Open Font License asks for the licence to travel
+with the font, not for attribution on screen, and its clause 4 in fact restricts using the authors'
+names to promote anything. A colophon would be a courtesy, not a duty, and is deliberately not part
+of this change.
 
 ### `GET /api/decks` reads the decks the server already defines
 

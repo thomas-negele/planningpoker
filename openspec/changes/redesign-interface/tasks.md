@@ -15,18 +15,27 @@
 
 ## 2. The typeface
 
-- [ ] 2.1 Commit the Geist variable `.woff2` (latin subset, weights 400–700) to the frontend asset
-      path, together with its SIL Open Font License text stored beside it and named so the pairing
-      is obvious. Verify both files are present and the licence names Geist.
-- [ ] 2.2 Declare a local `@font-face` with `font-display: swap` and put the family at the front of
+- [ ] 2.1 Commit the upstream Geist variable `.woff2` from `github.com/vercel/geist-font`
+      (`fonts/Geist/webfonts/Geist[wght].woff2`) to the frontend asset directory, not the Google
+      Fonts subset. Verify the file carries 728 glyphs and that Polish `ł`, Czech `č`, Hungarian
+      `ő`, Romanian `ș`, Turkish `ğ` and the `½` card are all present, since names are the
+      application's content.
+- [ ] 2.2 Commit `OFL.txt` into the same asset directory, so that it is bundled by Vite, embedded by
+      `go:embed` and served over HTTP beside the font. Verify it is reachable in the running
+      application and present inside the built container image — the repository is only one of the
+      three forms in which this application distributes the font.
+- [ ] 2.3 Declare a local `@font-face` with `font-display: swap` and put the family at the front of
       `--font-stack`, keeping the existing system stack behind it. Verify the running page renders
       in Geist and that removing the file falls back to the system stack rather than to a serif.
-- [ ] 2.3 Give the smallest uppercase labels — the `away` tag above all — explicit letter-spacing,
+- [ ] 2.4 Give the smallest uppercase labels — the `away` tag above all — explicit letter-spacing,
       because Geist sets tighter than the system stack there. Verify by eye at the table in both
       layouts.
-- [ ] 2.4 Verify the self-contained rule still holds: search the built output for `http://` and
+- [ ] 2.5 Verify the self-contained rule still holds: search the built output for `http://` and
       `https://`, and confirm in the browser's network panel that every request, the font included,
       targets one origin. Verify no Content-Security-Policy violation appears in the console.
+- [ ] 2.6 Seat a participant whose name uses characters outside basic latin — `Michał`, `Škoda`,
+      `Gülşen` — and verify every letter renders in Geist rather than one falling back to another
+      typeface.
 
 ## 3. The visual design behind properties
 
