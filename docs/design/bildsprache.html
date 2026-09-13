@@ -255,8 +255,10 @@ details.tokens pre {
   /* Hoch genug, dass der Sitzkranz vollständig neben den Tisch passt: Arena
      20.25rem plus 7rem Rand oben und 5rem unten, dazu Kopfzeile und Deck.
      Zu wenig Höhe staucht den Tischbereich und schiebt die unteren Sitze ins
-     Deck — das wäre ein Fehler dieses Dokuments und nicht der Anwendung. */
-  min-height: 44rem;
+     Deck — das wäre ein Fehler dieses Dokuments und nicht der Anwendung.
+     Etwas mehr als das rechnerische Minimum, damit der Tischbereich wie im
+     echten Fenster Luft hat und die unteren Sitze nicht am Deck kleben. */
+  min-height: 48rem;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -554,6 +556,12 @@ details.tokens pre {
 }
 
 .deck .card {
+  /* In der Anwendung ist das ein <button> und damit von sich aus ein Kasten.
+     Hier ist es ein <span>, also ein Fließelement, an dem Breite und Höhe
+     ohne diese Zeile wirkungslos blieben — die Karten fielen dann auf ihre
+     nackten Buchstaben zusammen. */
+  display: grid;
+  place-items: center;
   width: 3.4rem;
   height: 4.8rem;
   border-radius: var(--radius-card);
@@ -733,7 +741,9 @@ details.tokens pre {
   --card-back-alt: #1b1f29;
 
   --radius-panel: 14px;
-  --radius-card: 12px;
+  /* Eine Karte ist ein Rechteck mit gebrochenen Ecken, keine Kachel: 12px
+     ließen sie bei dieser Kartengröße rundlich wirken. */
+  --radius-card: 6px;
   --radius-control: 8px;
   --radius-bar: 999px;
   --display-tracking: -0.04em;
@@ -830,6 +840,14 @@ details.tokens pre {
   zählen. Alle drei bleiben dunkel, alle drei laufen auf dem heutigen System-Schriftstapel, und
   alle drei benutzen dieselben CSS-Variablennamen wie <code>web/src/app.css</code> — der
   Unterschied zwischen ihnen ist ein Unterschied in Werten, nicht in Code.
+</p>
+<p class="note">
+  <strong>Entschieden: Richtung B, „Klarraum".</strong> Die beiden anderen bleiben stehen, weil die
+  Begründung für die Wahl ohne die verworfenen Alternativen nicht nachvollziehbar wäre. Zwei
+  Änderungen gegenüber der ersten Fassung sind in B eingearbeitet: die Karten haben mit 6 px nur
+  noch leicht gebrochene Ecken statt der anfänglichen 12 px, und die Kartenreihe am unteren Rand
+  wird korrekt als Karten dargestellt — in der ersten Fassung war sie ein Fehler dieses Dokuments
+  und auf ihre nackten Buchstaben zusammengefallen. Die Schrift ist noch offen.
 </p>
 <p class="note">
   Diese Datei ist ein Entwurfsdokument und kein Teil der ausgelieferten Anwendung. Sie liegt unter
