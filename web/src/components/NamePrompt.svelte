@@ -99,7 +99,9 @@
   main {
     background: var(--surface);
     padding: 2.5rem 3rem;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow-panel);
     max-width: 26rem;
     width: 100%;
   }
@@ -124,7 +126,7 @@
   input {
     font: inherit;
     padding: 0.7rem 0.9rem;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--text);
@@ -218,7 +220,8 @@
     margin-left: 0.4rem;
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    /* Same reason as the away tag: small capitals in Geist need opening up. */
+    letter-spacing: 0.08em;
     color: var(--text-dim);
   }
 </style>

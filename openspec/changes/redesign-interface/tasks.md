@@ -1,51 +1,51 @@
 ## 1. The deck endpoint
 
-- [ ] 1.1 Add `GET /api/decks` to the transport layer, answering from the same `game.TShirtDeck()`
+- [x] 1.1 Add `GET /api/decks` to the transport layer, answering from the same `game.TShirtDeck()`
       and `game.FibonacciDeck()` that room creation uses, with each deck's stable name, label and
       cards in deck order. Verify with a handler test asserting the payload for both decks and the
       card order.
-- [ ] 1.2 Add a test asserting the endpoint creates nothing — no room, no seat, no `Set-Cookie` —
+- [x] 1.2 Add a test asserting the endpoint creates nothing — no room, no seat, no `Set-Cookie` —
       and that the manager's room count is unchanged after repeated requests. Verify with
       `go test ./internal/transport/...`.
-- [ ] 1.3 Add a test asserting the endpoint's cards for a deck equal the cards a room created with
+- [x] 1.3 Add a test asserting the endpoint's cards for a deck equal the cards a room created with
       that deck offers, so the two cannot drift. Verify with `go test ./internal/...`.
-- [ ] 1.4 Confirm the route is reachable through the development proxy as well as the embedded
+- [x] 1.4 Confirm the route is reachable through the development proxy as well as the embedded
       build. Verify by requesting it against `go run ./cmd/planningpoker` and against a binary built
       with `-tags embedassets`.
 
 ## 2. The typeface
 
-- [ ] 2.1 Commit the upstream Geist variable `.woff2` from `github.com/vercel/geist-font`
+- [x] 2.1 Commit the upstream Geist variable `.woff2` from `github.com/vercel/geist-font`
       (`fonts/Geist/webfonts/Geist[wght].woff2`) to the frontend asset directory, not the Google
       Fonts subset. Verify the file carries 728 glyphs and that Polish `ł`, Czech `č`, Hungarian
       `ő`, Romanian `ș`, Turkish `ğ` and the `½` card are all present, since names are the
       application's content.
-- [ ] 2.2 Commit `OFL.txt` into the same asset directory, so that it is bundled by Vite, embedded by
+- [x] 2.2 Commit `OFL.txt` into the same asset directory, so that it is bundled by Vite, embedded by
       `go:embed` and served over HTTP beside the font. Verify it is reachable in the running
       application and present inside the built container image — the repository is only one of the
       three forms in which this application distributes the font.
-- [ ] 2.3 Declare a local `@font-face` with `font-display: swap` and put the family at the front of
+- [x] 2.3 Declare a local `@font-face` with `font-display: swap` and put the family at the front of
       `--font-stack`, keeping the existing system stack behind it. Verify the running page renders
       in Geist and that removing the file falls back to the system stack rather than to a serif.
 - [ ] 2.4 Give the smallest uppercase labels — the `away` tag above all — explicit letter-spacing,
       because Geist sets tighter than the system stack there. Verify by eye at the table in both
       layouts.
-- [ ] 2.5 Verify the self-contained rule still holds: search the built output for `http://` and
+- [x] 2.5 Verify the self-contained rule still holds: search the built output for `http://` and
       `https://`, and confirm in the browser's network panel that every request, the font included,
       targets one origin. Verify no Content-Security-Policy violation appears in the console.
-- [ ] 2.6 Seat a participant whose name uses characters outside basic latin — `Michał`, `Škoda`,
+- [x] 2.6 Seat a participant whose name uses characters outside basic latin — `Michał`, `Škoda`,
       `Gülşen` — and verify every letter renders in Geist rather than one falling back to another
       typeface.
 
 ## 3. The visual design behind properties
 
-- [ ] 3.1 Move the radii, shadows, table surface, card-back pattern, bar colours and deck veil out
+- [x] 3.1 Move the radii, shadows, table surface, card-back pattern, bar colours and deck veil out
       of the components into new custom properties in `web/src/app.css`, leaving the existing colour
       property names unchanged. Verify `npm run build` succeeds and the appearance is unchanged at
       this point, since only the location of the values has moved.
-- [ ] 3.2 Apply the direction B values from `docs/design/visual-language.html`. Verify the entry
+- [x] 3.2 Apply the direction B values from `docs/design/visual-language.html`. Verify the entry
       screen, a running round and a revealed round against the template in the same three states.
-- [ ] 3.3 Replace the striped card back in `Seat.svelte` with the calm surface and its centre mark.
+- [x] 3.3 Replace the striped card back in `Seat.svelte` with the calm surface and its centre mark.
       Verify a face-down card is distinguishable from the background at a ratio of at least 3:1.
 - [ ] 3.4 Measure every text-on-surface and control-boundary pair in the new palette against the
       ratios the specification names, and record the measured figures in the change's verification

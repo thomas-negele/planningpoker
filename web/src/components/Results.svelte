@@ -148,8 +148,8 @@
     flex: 1;
     min-width: 0;
     height: 0.75rem;
-    border-radius: 3px;
-    background: var(--felt-edge);
+    border-radius: var(--radius-bar);
+    background: var(--bar-track);
     overflow: hidden;
   }
 
@@ -157,8 +157,8 @@
   .bar {
     display: block;
     height: 100%;
-    border-radius: 3px;
-    background: var(--card-face);
+    border-radius: var(--radius-bar);
+    background: var(--bar-fill);
   }
 
   .count {

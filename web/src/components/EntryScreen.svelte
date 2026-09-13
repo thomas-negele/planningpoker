@@ -49,7 +49,9 @@
   main {
     background: var(--surface);
     padding: 3rem;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow-panel);
     text-align: center;
     max-width: 30rem;
   }
@@ -57,7 +59,8 @@
   h1 {
     margin: 0 0 0.5rem;
     font-size: 2rem;
-    letter-spacing: -0.02em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
   }
 
   .sub {
@@ -93,7 +96,7 @@
   label span {
     padding: 0.55rem 0.8rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     color: var(--text-dim);
     font-size: 0.85rem;
   }

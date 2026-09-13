@@ -257,7 +257,7 @@
   .card {
     width: 2.9rem;
     height: 4.1rem;
-    border-radius: 7px;
+    border-radius: var(--radius-card);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -268,18 +268,16 @@
   }
 
   .card.face-down {
-    background: repeating-linear-gradient(
-      45deg,
-      var(--card-back) 0 6px,
-      var(--card-back-alt) 6px 12px
-    );
-    border-color: var(--accent-dim);
+    background: var(--card-back-pattern);
+    border-color: var(--card-back-border);
+    box-shadow: var(--shadow-card);
   }
 
   .card.face-up {
     background: var(--card-face);
     color: var(--card-face-text);
     border-color: var(--card-face-border);
+    box-shadow: var(--shadow-card);
   }
 
   .card.empty {
@@ -332,7 +330,9 @@
   .away-tag {
     font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    /* Geist sets tighter than the system stack; capitals this small need the
+       extra room or they read as one word. */
+    letter-spacing: 0.09em;
     color: var(--text-dim);
     border: 1px solid var(--border);
     border-radius: 999px;

@@ -395,8 +395,9 @@
   .table {
     position: absolute;
     inset: 0;
-    background: var(--felt);
+    background: var(--table-surface);
     border: 1px solid var(--felt-edge);
+    box-shadow: var(--table-inner);
     border-radius: 48% / 34%;
     display: flex;
     flex-direction: column;

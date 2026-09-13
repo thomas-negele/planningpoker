@@ -64,6 +64,7 @@ func run() error {
 		Assets:     webassets.New(),
 		Socket:     http.HandlerFunc(rooms.Socket),
 		CreateGame: http.HandlerFunc(rooms.CreateGame),
+		Decks:      http.HandlerFunc(transport.Decks),
 
 		// Registered whether or not notices exist: when they do not, the subtree
 		// answers 404 instead of letting a notice URL reach the application document.

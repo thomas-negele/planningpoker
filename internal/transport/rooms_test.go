@@ -47,6 +47,7 @@ func roomOptions(rooms *RoomHandlers) Options {
 		Assets:      stub("assets"),
 		Socket:      http.HandlerFunc(rooms.Socket),
 		CreateGame:  http.HandlerFunc(rooms.CreateGame),
+		Decks:       http.HandlerFunc(Decks),
 		LegalPages:  legal.Pages(nil),
 		LegalStatus: legal.Status(nil),
 	}

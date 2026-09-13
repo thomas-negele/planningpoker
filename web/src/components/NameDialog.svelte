@@ -92,7 +92,9 @@
   .dialog {
     background: var(--surface);
     padding: 1.75rem 2rem;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow-panel);
     width: min(24rem, 100%);
   }
 
@@ -110,7 +112,7 @@
   input[type='text'] {
     font: inherit;
     padding: 0.7rem 0.9rem;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--text);

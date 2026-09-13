@@ -47,7 +47,9 @@
   main {
     background: var(--surface);
     padding: 2.5rem 3rem;
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow-panel);
     text-align: center;
     max-width: 30rem;
   }

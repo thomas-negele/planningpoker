@@ -1,32 +1,106 @@
-/* Use installed system fonts; no remote font requests. */
+/*
+ * The application's own typeface, served from this origin like everything else.
+ * The rule that nothing is fetched from a foreign host is what makes a committed
+ * file the only way to have a typeface at all; the licence it is offered under
+ * sits beside it as Geist-OFL.txt, because the SIL Open Font License requires
+ * its text to travel with every copy of the font — and this application hands
+ * out copies three times over: as a repository, as a container image, and as the
+ * file every browser downloads.
+ *
+ * font-display: swap renders the text in the fallback face while the font loads
+ * and reflows once when it arrives. The alternative, block, hides text for up to
+ * three seconds, which on the join screen means a form nobody can read.
+ */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* The system stack stays behind Geist, so a font that fails to load leaves the
+     application looking as it did before rather than falling back to a serif. */
+  --font-stack: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 
-  --background: #10151c;
-  --surface: #1a2230;
-  --surface-raised: #232d3d;
-  --border: #33415a;
+  --background: #08090b;
+  --surface: #101216;
+  --surface-raised: #171a20;
+  --border: #5c6274;
 
-  --text: #e6ebf2;
-  --text-dim: #8d9bb0;
+  --text: #f2f4f7;
+  --text-dim: #8a919d;
 
-  --accent: #4c8dff;
-  --accent-dim: #35507f;
-  --accent-text: #0b1220;
+  --accent: #8b7bff;
+  --accent-dim: #3d3775;
+  --accent-text: #0a0812;
 
-  --good: #3ecf8e;
-  --warn: #e8b339;
+  --good: #46d39a;
+  --warn: #e3b341;
   --bad: #ff6b6b;
-  --bad-surface: #33202a;
+  --bad-surface: #2b1519;
 
-  --felt: #16362b;
-  --felt-edge: #1f5442;
+  --felt: #12151b;
+  --felt-edge: #272c36;
 
-  --card-face: #eef2f8;
-  --card-face-text: #121a26;
-  --card-face-border: #cbd5e4;
-  --card-back: #2b3950;
-  --card-back-alt: #35476a;
+  --card-face: #ffffff;
+  --card-face-text: #0d1014;
+  --card-face-border: #ffffff;
+  --card-back: #242936;
+  --card-back-alt: #1b1f29;
+
+  /*
+   * Shape, depth and the surfaces built out of the colours above. These used to
+   * sit hardcoded in seventeen component stylesheets, which meant that changing
+   * the look of a card was a change to nine files and changing a colour was a
+   * change to one. They are here so that the whole visual design is one place.
+   *
+   * What belongs here is what the design varies. Radii that are simply "a pill"
+   * (999px) or "a circle" (50%) stay in their components, because no direction
+   * has an opinion about them.
+   */
+
+  /* Corner radii. A panel is a dialog or a screen-sized card; a control is a
+     button or an input; a card is a playing card. */
+  --radius-panel: 14px;
+  --radius-control: 8px;
+  --radius-card: 6px;
+  --radius-bar: 999px;
+
+  /* The wordmark on the entry screen. */
+  --display-tracking: -0.04em;
+  --display-weight: 650;
+
+  /* Depth. All of these are none today: the current design uses no shadows and
+     no panel outlines, which is itself one of the things that makes it look
+     unfinished. */
+  --panel-border: #1c2027;
+  --shadow-panel: 0 1.25rem 2.5rem rgb(0 0 0 / 60%);
+  --shadow-card: 0 0.5rem 1.25rem rgb(0 0 0 / 55%);
+  --shadow-accent: 0 0.4rem 1.2rem rgb(139 123 255 / 30%);
+  --shadow-dot: 0 0 0.5rem rgb(70 211 154 / 55%);
+
+  /* The table. Direction B takes the felt out: it is a slightly raised surface
+     in the surface colour, with a hint of light along its top edge and its weight
+     carried by the shadow beneath rather than by a colour. */
+  --table-surface: radial-gradient(110% 140% at 50% 0%, #1a1e27 0%, #14171d 50%, #0f1116 100%);
+  --table-inner: inset 0 1px 0 rgb(255 255 255 / 6%), 0 1.75rem 4rem rgb(0 0 0 / 55%);
+
+  /* The back of a played card: a calm surface with a mark in its middle rather
+     than a stripe pattern. It is lighter than the background rather than merely
+     different from it, so that "has played" reads without hesitation on a very
+     dark table. */
+  --card-back-pattern:
+    radial-gradient(55% 55% at 50% 50%, rgb(139 123 255 / 20%) 0%, transparent 70%),
+    linear-gradient(var(--card-back), var(--card-back-alt));
+  --card-back-border: #5c6274;
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+
+  /* The tally's bars. */
+  --bar-track: rgb(255 255 255 / 7%);
+  --bar-fill: var(--accent);
 }
 
 * {
@@ -59,7 +133,7 @@ body {
 button {
   font: inherit;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--surface-raised);
   color: var(--text);
@@ -85,4 +159,5 @@ button.primary {
   border-color: var(--accent);
   color: var(--accent-text);
   font-weight: 600;
+  box-shadow: var(--shadow-accent);
 }
