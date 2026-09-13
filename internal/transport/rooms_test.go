@@ -223,6 +223,20 @@ func (c *client) refusal(t *testing.T) errorMessage {
 	return msg
 }
 
+// thrown reads the next message, requiring a transient throw event.
+func (c *client) thrown(t *testing.T) thrownMessage {
+	t.Helper()
+	body := c.raw(t)
+	var msg thrownMessage
+	if err := json.Unmarshal(body, &msg); err != nil {
+		t.Fatalf("decoding %s: %v", body, err)
+	}
+	if msg.Type != messageThrown {
+		t.Fatalf("expected a throw event, got %s", body)
+	}
+	return msg
+}
+
 // seat takes a seat and returns the snapshot that follows.
 func (c *client) seat(t *testing.T, name string) stateMessage {
 	t.Helper()

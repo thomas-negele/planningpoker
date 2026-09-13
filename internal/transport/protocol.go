@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"de.thomasnegele.planningpoker/internal/game"
 	"de.thomasnegele.planningpoker/internal/hub"
@@ -21,14 +22,17 @@ const (
 	intentNewRound = "newRound"
 	intentSetDeck  = "setDeck"
 	intentRename   = "rename"
+	intentThrow    = "throw"
 )
 
 // clientMessage carries a client intent and its optional payload.
 type clientMessage struct {
-	Type string `json:"type"`
-	Name string `json:"name,omitempty"`
-	Card string `json:"card,omitempty"`
-	Deck string `json:"deck,omitempty"`
+	Type   string `json:"type"`
+	Name   string `json:"name,omitempty"`
+	Card   string `json:"card,omitempty"`
+	Deck   string `json:"deck,omitempty"`
+	Target string `json:"target,omitempty"`
+	Object string `json:"object,omitempty"`
 }
 
 // decodeClientMessage parses JSON and rejects missing or unknown intent names.
@@ -40,7 +44,7 @@ func decodeClientMessage(raw []byte) (clientMessage, error) {
 	}
 
 	switch msg.Type {
-	case intentSeat, intentVote, intentReveal, intentNewRound, intentSetDeck, intentRename:
+	case intentSeat, intentVote, intentReveal, intentNewRound, intentSetDeck, intentRename, intentThrow:
 		return msg, nil
 	case "":
 		return clientMessage{}, fmt.Errorf("%w: no intent named", errMalformedMessage)
@@ -58,8 +62,9 @@ var errTooFast = errors.New("messages are arriving faster than this connection m
 // Server messages.
 
 const (
-	messageState = "state"
-	messageError = "error"
+	messageState  = "state"
+	messageError  = "error"
+	messageThrown = "thrown"
 )
 
 // stateMessage is the public room snapshot sent to a connection.
@@ -70,7 +75,25 @@ type stateMessage struct {
 	// snapshots.
 	You string `json:"you"`
 
-	Room roomMessage `json:"room"`
+	Room        roomMessage         `json:"room"`
+	ThrowPolicy *throwPolicyMessage `json:"throwPolicy,omitempty"`
+}
+
+type throwPolicyMessage struct {
+	ParticipantPerSecond int `json:"participantPerSecond"`
+	RoomPerSecond        int `json:"roomPerSecond"`
+	MessagePerSecond     int `json:"messagePerSecond"`
+	MessageBurst         int `json:"messageBurst"`
+}
+
+type thrownMessage struct {
+	Type   string `json:"type"`
+	ID     string `json:"id"`
+	Sender string `json:"sender"`
+	Target string `json:"target"`
+	Object string `json:"object"`
+	Seed   uint32 `json:"seed"`
+	AgeMS  int64  `json:"ageMs"`
 }
 
 type roomMessage struct {
@@ -144,6 +167,9 @@ const (
 	codeRoomFull      = "room_full"
 	codeAtCapacity    = "at_capacity"
 	codeTooFast       = "too_fast"
+	codeUnknownThrow  = "unknown_throw"
+	codeThrowAtSelf   = "throw_at_self"
+	codeThrowTarget   = "throw_target_absent"
 
 	// Connection capacity is distinct from server room capacity and participant seat
 	// capacity.
@@ -172,6 +198,9 @@ var refusals = []refusal{
 	{game.ErrInvalidCapacity, codeServerError},
 	{hub.ErrAtCapacity, codeAtCapacity},
 	{hub.ErrRoomAtCapacity, codeTooManyConnections},
+	{hub.ErrUnknownThrowObject, codeUnknownThrow},
+	{hub.ErrThrowAtSelf, codeThrowAtSelf},
+	{hub.ErrThrowTargetAbsent, codeThrowTarget},
 	{errTooFast, codeTooFast},
 	{errMalformedMessage, codeBadMessage},
 }
@@ -190,7 +219,7 @@ func refusalCode(err error) (string, bool) {
 // Snapshot encoding.
 
 // encodeUpdate turns what a room produced into the bytes for one connection.
-func encodeUpdate(u hub.Update) ([]byte, error) {
+func encodeUpdate(u hub.Update, policy ...throwPolicyMessage) ([]byte, error) {
 	if u.Err != nil {
 		code, known := refusalCode(u.Err)
 		if !known {
@@ -203,10 +232,26 @@ func encodeUpdate(u hub.Update) ([]byte, error) {
 	if u.View == nil {
 		return nil, errors.New("update carried neither a view nor an error")
 	}
-	return json.Marshal(stateMessage{
+	message := stateMessage{
 		Type: messageState,
 		You:  string(u.You),
 		Room: roomFromView(*u.View),
+	}
+	if len(policy) > 0 {
+		message.ThrowPolicy = &policy[0]
+	}
+	return json.Marshal(message)
+}
+
+func encodeThrow(event hub.ThrowEvent, now time.Time) ([]byte, error) {
+	age := now.Sub(event.AcceptedAt)
+	if age < 0 {
+		age = 0
+	}
+	return json.Marshal(thrownMessage{
+		Type: messageThrown, ID: event.ID, Sender: string(event.Sender),
+		Target: string(event.Target), Object: string(event.Object), Seed: event.Seed,
+		AgeMS: age.Milliseconds(),
 	})
 }
 

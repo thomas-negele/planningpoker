@@ -34,7 +34,7 @@ See [README.md](README.md) for Docker and development startup.
 Run from the repository root. Build frontend assets before testing the embedded variant:
 
 ```sh
-(cd web && npm ci && npm run check && npm run build)
+(cd web && npm ci && npm test && npm run check && npm run build)
 go build ./...
 go vet ./...
 gofmt -l .
@@ -44,6 +44,13 @@ go test -race -count=3 -tags embedassets ./...
 
 `gofmt -l .` should produce no output. The Go suites repeat three times to detect
 intermittent failures. Bundle checks at the end of related changes.
+
+For the throw picker browser interaction checks, install the separate test dependencies with
+`cd e2e && npm ci`, then install Playwright's Chromium once with
+`cd e2e && npx playwright install chromium`. Run `cd e2e && npm test` after the web dependencies
+are installed. That command builds the frontend and starts its own Go server on
+`127.0.0.1:4324`; it does not use the Docker demo server on port 8080. Run
+`cd e2e && npm run check` to type-check the browser tests.
 
 For container, serving or CSP-related changes, also verify the application in Docker:
 

@@ -1,0 +1,13 @@
+{
+  "name": "planningpoker-browser-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm --prefix ../web run build && playwright test",
+    "check": "../web/node_modules/.bin/tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

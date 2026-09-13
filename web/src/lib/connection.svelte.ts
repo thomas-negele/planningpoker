@@ -10,8 +10,11 @@ import {
   type ClientMessage,
   type Room,
   type ServerMessage,
+  type ThrownMessage,
+  type ThrowObject,
 } from './protocol';
 import type { DeckName } from './decks';
+import { ThrowPacer } from './throw-pacing';
 
 export type ConnectionStatus =
   /** A socket is being opened for the first time. */
@@ -77,6 +80,9 @@ export class RoomConnection {
   #retry: ReturnType<typeof setTimeout> | null = null;
   #closed = false;
 
+  #pacer = new ThrowPacer();
+  #throwListeners = new Set<(event: ThrownMessage) => void>();
+
   constructor(roomId: string) {
     this.roomId = roomId;
     this.#open();
@@ -90,6 +96,10 @@ export class RoomConnection {
   /** Intents may only be sent over an established connection. */
   get canAct(): boolean {
     return this.status === 'open' && this.#socket?.readyState === WebSocket.OPEN;
+  }
+
+  get canThrow(): boolean {
+    return this.canAct && this.seated && this.#pacer.ready;
   }
 
   seat(name: string): void {
@@ -118,6 +128,17 @@ export class RoomConnection {
     this.#send({ type: 'rename', name });
   }
 
+  throwAt(target: string, object: ThrowObject): void {
+    const socket = this.#socket;
+    if (!this.canThrow || socket === null || !this.#pacer.takeThrow(socket.bufferedAmount)) return;
+    socket.send(JSON.stringify({ type: 'throw', target, object } satisfies ClientMessage));
+  }
+
+  onThrow(listener: (event: ThrownMessage) => void): () => void {
+    this.#throwListeners.add(listener);
+    return () => this.#throwListeners.delete(listener);
+  }
+
   /** Clears the refusal currently on screen, once it has been read. */
   dismissRefusal(): void {
     this.refusal = null;
@@ -134,10 +155,12 @@ export class RoomConnection {
     if (this.#retry !== null) clearTimeout(this.#retry);
     this.#socket?.close(1000, 'left the room');
     this.#socket = null;
+    this.#throwListeners.clear();
   }
 
   #send(message: ClientMessage): void {
     if (!this.canAct) return;
+    this.#pacer.noteIntent();
     this.#socket?.send(JSON.stringify(message));
   }
 
@@ -158,6 +181,7 @@ export class RoomConnection {
       return;
     }
     this.#socket = socket;
+    this.#pacer.resetSocket();
 
     socket.addEventListener('open', () => {
       // The first fresh snapshot may arrive after the open event.
@@ -210,7 +234,23 @@ export class RoomConnection {
 
       this.room = message.room;
       if (message.you !== '') this.you = message.you;
+      if (message.throwPolicy && !this.#pacer.ready) this.#pacer.configure(message.throwPolicy);
       this.#reconcileMyCard();
+      return;
+    }
+
+    if (message.type === 'thrown') {
+      if (
+        message.ageMs >= 0 &&
+        message.ageMs < 1200 &&
+        Number.isInteger(message.seed) &&
+        message.seed >= 0 &&
+        (message.object === 'paper-ball' ||
+          message.object === 'paper-plane' ||
+          message.object === 'flowers')
+      ) {
+        for (const listener of this.#throwListeners) listener(message);
+      }
       return;
     }
 

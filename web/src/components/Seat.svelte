@@ -1,5 +1,7 @@
 <script lang="ts">
-  import type { Card, Participant } from '../lib/protocol';
+  import { tick } from 'svelte';
+  import type { Card, Participant, ThrowObject } from '../lib/protocol';
+  import ThrowIcon from './ThrowIcon.svelte';
 
   // Render one participant. Card values are supplied only after reveal.
 
@@ -17,6 +19,8 @@
     push: string;
     canRename: boolean;
     onedit: () => void;
+    canThrow: boolean;
+    onthrow: (object: ThrowObject) => void;
   }
 
   let {
@@ -31,13 +35,58 @@
     push,
     canRename,
     onedit,
+    canThrow,
+    onthrow,
   }: Props = $props();
 
   // The parent owns the rename dialog and storage preference.
+  let open = $state(false);
+  let root = $state<HTMLElement>();
+  let trigger = $state<HTMLButtonElement>();
+
+  function toggle() {
+    if (canThrow) open = !open;
+  }
+
+  async function choose(object: ThrowObject) {
+    if (!canThrow) return;
+    onthrow(object);
+    await closeAndRestoreFocus();
+  }
+
+  async function closeAndRestoreFocus() {
+    open = false;
+    await tick();
+    trigger?.focus();
+  }
+
+  function outside(event: PointerEvent) {
+    if (open && event.target instanceof Node && !root?.contains(event.target)) open = false;
+  }
+
+  function keydown(event: KeyboardEvent) {
+    if (open && event.key === 'Escape') {
+      event.preventDefault();
+      closeAndRestoreFocus();
+    }
+  }
+
+  async function focusout() {
+    if (!open) return;
+    await tick();
+    if (root && !root.contains(document.activeElement)) open = false;
+  }
+
+  $effect(() => {
+    if (!canThrow || participant.away) open = false;
+  });
 </script>
+
+<svelte:window onpointerdown={outside} onkeydown={keydown} />
 
 <!-- RoomView supplies the seat geometry through CSS custom properties. -->
 <li
+  bind:this={root}
   class="seat"
   class:you={isYou}
   class:away={participant.away}
@@ -46,6 +95,8 @@
   style:--push-x={pushX}
   style:--push-y={pushY}
   style:--push={push}
+  data-seat-id={participant.id}
+  onfocusout={focusout}
 >
   <div class="card-slot">
     {#if revealed}
@@ -83,15 +134,118 @@
       <span class="away-tag">away</span>
     {/if}
   </div>
+
+  {#if !isYou && !participant.away}
+    <div class="throw-control" class:open>
+      <button
+        bind:this={trigger}
+        class="throw-trigger"
+        aria-label={`Throw something at ${participant.name}`}
+        aria-expanded={open}
+        disabled={!canThrow}
+        onclick={toggle}
+      >
+        <ThrowIcon object="paper-ball" size={18} />
+      </button>
+      <div class="throw-picker" role="group" aria-label={`Throw at ${participant.name}`}>
+        <button aria-label={`Throw paper ball at ${participant.name}`} onclick={() => choose('paper-ball')}>
+          <ThrowIcon object="paper-ball" size={24} />
+        </button>
+        <button aria-label={`Throw paper plane at ${participant.name}`} onclick={() => choose('paper-plane')}>
+          <ThrowIcon object="paper-plane" size={25} />
+        </button>
+        <button aria-label={`Throw a flower at ${participant.name}`} onclick={() => choose('flowers')}>
+          <ThrowIcon object="flowers" size={25} />
+        </button>
+      </div>
+    </div>
+  {/if}
 </li>
 
 <style>
   .seat {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.4rem;
     text-align: center;
+  }
+
+  .throw-control {
+    position: absolute;
+    left: calc(100% - 0.2rem);
+    bottom: 0.1rem;
+    z-index: 7;
+  }
+
+  .throw-trigger {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    padding: 0;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.9);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  .throw-trigger:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .throw-picker {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.35rem);
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    box-shadow: 0 0.45rem 1.2rem rgb(0 0 0 / 28%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 0.25rem) scale(0.96);
+    transition: opacity 100ms ease, transform 100ms ease, visibility 100ms;
+  }
+
+  .throw-picker::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+  }
+
+  .seat:hover .throw-picker,
+  .throw-control.open .throw-picker {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  .throw-picker button {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .throw-picker button:hover,
+  .throw-picker button:focus-visible {
+    background: var(--surface);
   }
 
   .card-slot {
@@ -226,5 +380,35 @@
     .name {
       font-size: 0.95rem;
     }
+
+    .throw-control {
+      left: auto;
+      right: 2.9rem;
+      bottom: 50%;
+      transform: translateY(50%);
+    }
+
+    .throw-picker {
+      left: auto;
+      right: 0;
+      bottom: calc(100% + 0.35rem);
+      transform: translate(0, 0.25rem) scale(0.96);
+    }
+
+    .seat:hover .throw-picker,
+    .throw-control:focus-within .throw-picker,
+    .throw-control.open .throw-picker {
+      transform: translate(0, 0) scale(1);
+    }
+  }
+
+  @media (hover: none) {
+    .throw-trigger { opacity: 1; pointer-events: auto; transform: scale(1); }
+    .seat:hover .throw-picker {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .throw-control.open .throw-picker { opacity: 1; visibility: visible; pointer-events: auto; }
   }
 </style>

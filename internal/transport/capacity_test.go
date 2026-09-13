@@ -252,19 +252,17 @@ func TestAFullTableVotingAtOnceIsNeverSlowed(t *testing.T) {
 	roomID := srv.createGame(t)
 
 	clients := make([]*client, seats)
+	stop := make(chan struct{})
+	defer close(stop)
 	for i := range clients {
 		clients[i] = srv.dial(t, roomID)
 		clients[i].state(t)
 		clients[i].send(t, clientMessage{Type: intentSeat, Name: "Player"})
-	}
+		clients[i].state(t)
 
-	// Every one of these connections must keep reading for the whole test. A table
-	// of twenty produces a snapshot per person per action, and a connection that
-	// stops reading is dropped by the hub for being slow — which would look exactly
-	// like the rate limit refusing it, and prove nothing.
-	stop := make(chan struct{})
-	defer close(stop)
-	for _, c := range clients {
+		// Start draining as soon as this participant sits. Under race
+		// instrumentation, waiting until all twenty have joined can otherwise fill
+		// an early participant's reliable snapshot queue during test setup.
 		go func(c *client) {
 			for {
 				select {
@@ -272,12 +270,18 @@ func TestAFullTableVotingAtOnceIsNeverSlowed(t *testing.T) {
 					return
 				default:
 				}
-				if _, err := c.readWithin(time.Second); err != nil {
+				if _, err := c.readWithin(5 * time.Second); err != nil {
 					return
 				}
 			}
-		}(c)
+		}(clients[i])
 	}
+
+	// Every one of these connections must keep reading for the whole test. A table
+	// of twenty produces a snapshot per person per action, and a connection that
+	// stops reading is dropped by the hub for being slow — which would look exactly
+	// like the rate limit refusing it, and prove nothing.
+	// The drainers above already cover both setup and the simultaneous vote.
 
 	// Everybody votes at once, from their own connection.
 	var wg sync.WaitGroup

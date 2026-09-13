@@ -134,7 +134,8 @@ change rests on those two properties, and neither is obvious enough to leave unt
 
 ### Requirement: Behaviour-governing values are set by environment variable
 
-Every value that governs how the running process behaves SHALL be readable from an environment
+Except for the explicitly fixed participant-throw limits described below, every value that governs
+how the running process behaves SHALL be readable from an environment
 variable and SHALL have a documented default that applies when the variable is unset or empty. Each
 such value MUST be accompanied, in the code and in `compose.yaml`, by a full-sentence explanation
 of what it does and what a boundary value means.
@@ -194,6 +195,18 @@ what it costs.
 - **WHEN** the process starts with any capacity-limit variable set to zero, to a negative number, or
   to something that is not a number
 - **THEN** the process exits with a non-zero status and an error naming the variable and the value
+
+Participant throws are an explicit exception chosen for this feature: at most 3 accepted throws
+per participant and 12 per room in a rolling second SHALL be fixed, named constants rather than
+new environment variables or runtime settings. Documentation SHALL explain that throw quotas are
+additional to the existing configurable per-connection message limit, and that reaching a throw
+quota drops cosmetic work without closing the connection.
+
+#### Scenario: Throw ceilings are fixed and documented
+
+- **WHEN** the application starts with any valid existing deployment configuration
+- **THEN** the throw ceilings remain 3 per participant and 12 per room per rolling second,
+  documented as fixed constants, while the configured general message limit still applies
 
 ### Requirement: The process holds a bounded number of rooms and connections
 

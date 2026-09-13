@@ -1,12 +1,4 @@
-# live-updates Specification
-
-## Purpose
-
-Defines how a browser and the server talk while a game is running: connecting to a room, the intents
-a participant may send, the snapshots the server sends back after every change, what happens when an
-intent is refused, and how several connections belonging to one person behave.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The server sends whole snapshots of the room, never partial updates
 
@@ -50,27 +42,6 @@ that snapshot has been written.
 - **WHEN** a browser connects while other participants are throwing objects
 - **THEN** it receives a complete snapshot before any throw event, and later snapshots remain
   sufficient to render the game without any earlier events
-
-### Requirement: A hidden vote never crosses the network
-
-While a round is hidden, a snapshot SHALL report only *whether* each participant has voted. It MUST
-NOT contain any vote's value, nor a count of votes per card, nor anything else from which a value
-could be recovered.
-
-This is the guarantee the whole product rests on, and it is the reason the rules were written to make
-a hidden card unrepresentable rather than merely omitted. The transport layer SHALL send what the
-rules give it and MUST NOT reach past them for state to include.
-
-#### Scenario: A hidden round transmits no card
-
-- **WHEN** every participant has voted and the round has not been revealed
-- **THEN** no message any client receives contains any card value, as observed on the network rather
-  than in the interface
-
-#### Scenario: Revealing transmits the cards
-
-- **WHEN** the round is revealed
-- **THEN** the next snapshot contains every participant's card and the count per card
 
 ### Requirement: A participant sends intents and the server decides
 
@@ -166,6 +137,8 @@ General incoming-message flood refusals retain their existing behaviour.
 - **THEN** only their connection receives a reason that distinguishes the invalid object,
   self-target and unavailable target
 
+## ADDED Requirements
+
 ### Requirement: The browser coordinates throw traffic with the configured message allowance
 
 The server SHALL make the connection's applicable message rate and burst allowance available to
@@ -198,117 +171,3 @@ SHALL NOT assume the default 10 messages per second or treat a local limit as se
   messages
 - **THEN** the existing server-side message-rate, message-size and persistent-flood protections
   still apply before unbounded decoding or room work can occur
-
-### Requirement: A connection's incoming messages are bounded in rate and size
-
-A single connection SHALL be limited both in how fast it may send messages and in how large one
-message may be. The rate SHALL be configurable as a sustained number of messages per second with a
-short burst allowance above it, so that a handful of actions arriving together — a reconnecting page
-catching up, or somebody voting and immediately revealing — passes through untouched. The message
-size limit SHALL be set explicitly to a size this protocol needs, rather than left at whatever the
-WebSocket library happens to default to.
-
-Both limits apply **per connection**, not per room. Every participant voting in the same second is
-one message on each of their own connections and SHALL never approach the limit; a table of any
-permitted size can act simultaneously without being slowed.
-
-Exceeding the rate SHALL be answered with a refusal naming that reason, and SHALL NOT disturb the
-room or any other connection. A connection that continues to exceed it may be closed, and closing it
-SHALL free everything it held, exactly as an ordinary disconnection does; the participant keeps their
-seat and is marked away, as they would be after any dropped connection.
-
-A message larger than the limit SHALL be refused without being processed and without the server
-allocating space for its full contents.
-
-Neither limit SHALL be reached by ordinary use. Thinking about an estimate for a long time sends no
-messages at all and is therefore never affected.
-
-#### Scenario: Everyone voting at once is unaffected
-
-- **WHEN** every participant in a full room plays a card within the same second, each from their own
-  connection
-- **THEN** every vote is recorded and no connection is refused or slowed
-
-#### Scenario: One connection flooding is refused, not the room
-
-- **WHEN** a single connection sends messages far faster than the configured rate
-- **THEN** that connection is refused with a reason naming the rate, the room is unchanged, and no
-  other participant notices anything
-
-#### Scenario: A persistent flood ends only that connection
-
-- **WHEN** a connection keeps exceeding the rate after being refused
-- **THEN** that connection may be closed, everything it held is released, and its participant is
-  marked away while keeping their seat and their vote
-
-#### Scenario: An oversized message is refused
-
-- **WHEN** a client sends a message larger than the configured size limit
-- **THEN** the message is not processed, the room is unchanged, and the server does not hold the
-  full message in memory
-
-#### Scenario: A long silence is not a violation
-
-- **WHEN** a connection sends nothing at all for a long time while its participant thinks
-- **THEN** neither limit is triggered and the connection is not affected by them
-
-### Requirement: One participant may hold several connections
-
-A participant SHALL be able to hold more than one open connection to the same room, which is what
-happens when they open a second tab. All of their connections receive the same snapshots.
-
-Several connections are one seat at the table: the participant appears once, and an action taken on
-one connection is reflected on the others.
-
-A participant SHALL be marked away only when the last of their connections closes, and the away mark
-SHALL be cleared when a new one opens.
-
-#### Scenario: A second tab is not a second participant
-
-- **WHEN** a browser opens the same room in a second tab, presenting the identifier it already holds
-- **THEN** the table still shows one participant for that person, and both connections receive
-  snapshots
-
-#### Scenario: An action on one connection appears on the other
-
-- **WHEN** a participant votes in one of their tabs
-- **THEN** their other tab receives a snapshot showing that they have voted
-
-#### Scenario: Away means the last connection closed
-
-- **WHEN** a participant with two open connections closes one of them
-- **THEN** they are not marked away; and when they close the second, they are
-
-### Requirement: One goroutine owns each room
-
-Each room's state SHALL be owned by exactly one goroutine. No other goroutine reads or writes it
-directly; everything reaches a room by sending it a message.
-
-The interesting logic therefore runs single-threaded and needs no locking, and the shared structure
-that remains — the collection of rooms — is guarded separately and protects nothing but itself.
-
-A connection that stops reading MUST NOT be able to stall the room or the other participants. If a
-slow or stuck connection cannot keep up, that connection is dropped rather than allowed to hold up
-everyone else.
-
-The whole design SHALL be exercised under Go's race detector, since a data race here would be the
-kind of fault that appears only under load and only in production.
-
-#### Scenario: Concurrent activity produces a consistent room
-
-- **WHEN** many browsers connect, take seats, vote, reveal and start new rounds against the same room
-  at the same time
-- **THEN** the room's state stays consistent, every connection receives well-formed snapshots, and
-  the race detector reports nothing
-
-#### Scenario: A stuck connection does not stall the room
-
-- **WHEN** one connection stops reading what the server sends it
-- **THEN** the other participants continue unaffected, and the stuck connection is eventually dropped
-  rather than blocking the room
-
-#### Scenario: Shutdown closes rooms and connections
-
-- **WHEN** the process is asked to stop
-- **THEN** every room goroutine ends and every connection is closed, within the shutdown budget and
-  without leaking a goroutine
