@@ -7,9 +7,79 @@ import (
 	"go/token"
 	"strings"
 	"testing"
+	"time"
 
 	"de.thomasnegele.planningpoker/internal/game"
+	"de.thomasnegele.planningpoker/internal/hub"
 )
+
+func TestThrowIntentAcceptsOnlyDataFields(t *testing.T) {
+	msg, err := decodeClientMessage([]byte(`{"type":"throw","target":"target-id","object":"paper-plane","sender":"forged","html":"<script>"}`))
+	if err != nil {
+		t.Fatalf("decodeClientMessage: %v", err)
+	}
+	if msg.Type != intentThrow || msg.Target != "target-id" || msg.Object != "paper-plane" {
+		t.Errorf("decoded throw = %+v", msg)
+	}
+}
+
+func TestThrowEncodingContainsOnlyPublicTransientData(t *testing.T) {
+	accepted := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	body, err := encodeThrow(hub.ThrowEvent{
+		ID: "7", Sender: "sender", Target: "target", Object: hub.ThrowFlowers,
+		Seed: 42, AcceptedAt: accepted,
+	}, accepted.Add(125*time.Millisecond))
+	if err != nil {
+		t.Fatalf("encodeThrow: %v", err)
+	}
+	var msg thrownMessage
+	if err := json.Unmarshal(body, &msg); err != nil {
+		t.Fatalf("decoding %s: %v", body, err)
+	}
+	if msg.Type != messageThrown || msg.ID != "7" || msg.Sender != "sender" ||
+		msg.Target != "target" || msg.Object != string(hub.ThrowFlowers) || msg.Seed != 42 || msg.AgeMS != 125 {
+		t.Errorf("encoded throw = %+v", msg)
+	}
+	for _, forbidden := range []string{"token", "card", "html", "coordinates"} {
+		if strings.Contains(string(body), forbidden) {
+			t.Errorf("throw payload contains forbidden %q field: %s", forbidden, body)
+		}
+	}
+}
+
+func TestStateAdvertisesFixedAndConfiguredThrowPolicy(t *testing.T) {
+	body, err := encodeUpdate(hub.Update{View: &game.View{}, You: "me"}, throwPolicyMessage{
+		ParticipantPerSecond: hub.ThrowsPerParticipant,
+		RoomPerSecond:        hub.ThrowsPerRoom,
+		MessagePerSecond:     1,
+		MessageBurst:         2,
+	})
+	if err != nil {
+		t.Fatalf("encodeUpdate: %v", err)
+	}
+	var msg stateMessage
+	if err := json.Unmarshal(body, &msg); err != nil {
+		t.Fatalf("decoding: %v", err)
+	}
+	if msg.ThrowPolicy == nil || msg.ThrowPolicy.ParticipantPerSecond != 3 ||
+		msg.ThrowPolicy.RoomPerSecond != 12 || msg.ThrowPolicy.MessagePerSecond != 1 ||
+		msg.ThrowPolicy.MessageBurst != 2 {
+		t.Errorf("throw policy = %+v", msg.ThrowPolicy)
+	}
+}
+
+func TestThrowRefusalsHaveDistinctCodes(t *testing.T) {
+	tests := map[error]string{
+		hub.ErrUnknownThrowObject: codeUnknownThrow,
+		hub.ErrThrowAtSelf:        codeThrowAtSelf,
+		hub.ErrThrowTargetAbsent:  codeThrowTarget,
+	}
+	for err, want := range tests {
+		if got, known := refusalCode(err); !known || got != want {
+			t.Errorf("refusalCode(%v) = (%q, %v), want (%q, true)", err, got, known, want)
+		}
+	}
+}
 
 // gameSentinels lists every refusal the rules can produce. The test below checks
 // this list against the domain's own source, so adding a sentinel there without

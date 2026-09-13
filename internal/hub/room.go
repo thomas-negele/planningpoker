@@ -16,6 +16,7 @@ type Room struct {
 	id game.RoomID
 
 	commands chan command
+	throws   chan throwCommand
 	stop     chan struct{}
 	done     chan struct{}
 	stopOnce sync.Once
@@ -41,6 +42,10 @@ type roomState struct {
 
 	// maxConnections counts sockets, including multiple tabs for one seat.
 	maxConnections int
+
+	participantThrows map[game.ParticipantID][]time.Time
+	roomThrows        []time.Time
+	throwSequence     uint64
 }
 
 // newRoom creates a room with a generated ID.
@@ -71,18 +76,20 @@ func startRoom(g *game.Room, id game.RoomID, clock Clock, random io.Reader, limi
 	r := &Room{
 		id:       id,
 		commands: make(chan command, commandBuffer),
+		throws:   make(chan throwCommand, throwInboxSize),
 		stop:     make(chan struct{}),
 		done:     make(chan struct{}),
 	}
 
 	state := &roomState{
-		game:           g,
-		clock:          clock,
-		random:         random,
-		conns:          make(map[*Conn]game.ParticipantID),
-		seats:          make(map[string]game.ParticipantID),
-		lastOccupied:   clock.Now(),
-		maxConnections: limits.ConnectionsPerRoom,
+		game:              g,
+		clock:             clock,
+		random:            random,
+		conns:             make(map[*Conn]game.ParticipantID),
+		seats:             make(map[string]game.ParticipantID),
+		lastOccupied:      clock.Now(),
+		maxConnections:    limits.ConnectionsPerRoom,
+		participantThrows: make(map[game.ParticipantID][]time.Time),
 	}
 
 	go r.run(state)
@@ -94,16 +101,52 @@ func (r *Room) run(s *roomState) {
 	defer close(r.done)
 
 	for {
+		// Ordinary commands and shutdown get first chance before cosmetic work.
+		select {
+		case <-r.stop:
+			s.closeConnections()
+			return
+		case c := <-r.commands:
+			c.apply(s)
+			continue
+		default:
+		}
+
 		select {
 		case c := <-r.commands:
 			c.apply(s)
-		case <-r.stop:
-			// Closing connections wakes their transport handlers.
-			for c := range s.conns {
-				c.Close()
+		case c := <-r.throws:
+			// A game command or shutdown may have become ready after the precheck.
+			// Service it before starting the cosmetic request; the throw is still
+			// revalidated immediately afterwards on the room goroutine.
+			select {
+			case <-r.stop:
+				s.closeConnections()
+				return
+			default:
 			}
+			select {
+			case ordinary := <-r.commands:
+				ordinary.apply(s)
+			default:
+			}
+			select {
+			case <-r.stop:
+				s.closeConnections()
+				return
+			default:
+			}
+			c.apply(s)
+		case <-r.stop:
+			s.closeConnections()
 			return
 		}
+	}
+}
+
+func (s *roomState) closeConnections() {
+	for c := range s.conns {
+		c.Close()
 	}
 }
 
@@ -185,6 +228,24 @@ func (r *Room) SetDeck(c *Conn, deckName string) bool {
 
 // Rename changes a participant's display name.
 func (r *Room) Rename(c *Conn, name string) bool { return r.send(renameCommand{conn: c, name: name}) }
+
+// Throw offers a cosmetic request without waiting behind game commands. A full
+// cosmetic inbox is a silent best-effort drop.
+func (r *Room) Throw(c *Conn, target game.ParticipantID, object ThrowObject) bool {
+	select {
+	case <-r.done:
+		return false
+	default:
+	}
+	select {
+	case r.throws <- throwCommand{conn: c, target: target, object: object}:
+		return true
+	case <-r.done:
+		return false
+	default:
+		return false
+	}
+}
 
 // occupancy is a room's answer to "is anyone still connected, and if not, since
 // when?".

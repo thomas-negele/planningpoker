@@ -5,6 +5,7 @@
 # Reproduced inside the image: the Node stage runs `npm ci` and `npm run build`,
 # so a copy from the host would only risk baking in stale or platform-specific files.
 web/node_modules/
+e2e/
 internal/webassets/dist/
 
 # Version control history: large, and nothing in the build reads it.

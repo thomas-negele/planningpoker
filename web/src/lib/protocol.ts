@@ -5,6 +5,15 @@ import type { DeckName } from './decks';
 /** A card is whatever the room's deck offers. The page never assumes which. */
 export type Card = string;
 
+export type ThrowObject = 'paper-ball' | 'paper-plane' | 'flowers';
+
+export interface ThrowPolicy {
+  participantPerSecond: number;
+  roomPerSecond: number;
+  messagePerSecond: number;
+  messageBurst: number;
+}
+
 export interface Deck {
   name: DeckName;
   cards: Card[];
@@ -56,6 +65,17 @@ export interface StateMessage {
   /** This connection's own participant, empty until it has taken a seat. */
   you: string;
   room: Room;
+  throwPolicy?: ThrowPolicy;
+}
+
+export interface ThrownMessage {
+  type: 'thrown';
+  id: string;
+  sender: string;
+  target: string;
+  object: ThrowObject;
+  seed: number;
+  ageMs: number;
 }
 
 export interface ErrorMessage {
@@ -64,7 +84,7 @@ export interface ErrorMessage {
   message: string;
 }
 
-export type ServerMessage = StateMessage | ErrorMessage;
+export type ServerMessage = StateMessage | ErrorMessage | ThrownMessage;
 
 /** Everything a client may ask for. */
 export type ClientMessage =
@@ -73,7 +93,8 @@ export type ClientMessage =
   | { type: 'reveal' }
   | { type: 'newRound' }
   | { type: 'setDeck'; deck: DeckName }
-  | { type: 'rename'; name: string };
+  | { type: 'rename'; name: string }
+  | { type: 'throw'; target: string; object: ThrowObject };
 
 /** Application close code for an invalid room ID; browsers can read it after upgrade. */
 export const CLOSE_INVALID_ROOM_ID = 4400;
@@ -103,6 +124,9 @@ const REFUSALS: Record<string, string> = {
   at_capacity:
     'This server is running as many games as it can right now. Please try again in a few minutes.',
   too_fast: 'That arrived faster than the server accepts. Please slow down.',
+  unknown_throw: 'That throw is not available.',
+  throw_at_self: 'Choose another participant for that throw.',
+  throw_target_absent: 'That participant is not currently at the table.',
   too_many_connections:
     'This room already has as many connections open as it allows. If you have it open in another tab, close that one and try again.',
   server_error: 'Something went wrong on the server. Please try again.',

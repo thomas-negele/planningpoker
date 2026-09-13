@@ -43,6 +43,8 @@ services:
 
       # Messages per second per connection, with a burst of twice this value.
       # Repeated flooding can close the connection. This is not an inactivity timeout.
+      # Cosmetic throws are additionally fixed at 3 per participant and 12 per room
+      # per rolling second; excess throws are dropped and do not close a connection.
       PLANNINGPOKER_MESSAGE_RATE: "${PLANNINGPOKER_MESSAGE_RATE:-10}"
 
     # Container deadline before SIGKILL; keep longer than the application shutdown budget.

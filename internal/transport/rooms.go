@@ -361,7 +361,7 @@ func (h *RoomHandlers) serve(ctx context.Context, conn *websocket.Conn, room *hu
 	go func() {
 		defer writing.Done()
 		defer cancel()
-		writeUpdates(ctx, conn, hubConn, h.heartbeat, h.deadline)
+		writeUpdates(ctx, conn, hubConn, h.rate, h.now, h.heartbeat, h.deadline)
 	}()
 
 	// A per-connection allowance lets participants act independently.
@@ -380,12 +380,66 @@ func writeUpdates(
 	ctx context.Context,
 	conn *websocket.Conn,
 	hubConn *hub.Conn,
+	rate RateLimit,
+	now func() time.Time,
 	heartbeat, deadline time.Duration,
 ) {
 	ticker := time.NewTicker(heartbeat)
 	defer ticker.Stop()
+	policy := throwPolicyMessage{
+		ParticipantPerSecond: hub.ThrowsPerParticipant,
+		RoomPerSecond:        hub.ThrowsPerRoom,
+		MessagePerSecond:     max(rate.PerSecond, 1),
+		MessageBurst:         max(rate.Burst, 1),
+	}
+	if now == nil {
+		now = time.Now
+	}
+
+	// Attach always queues the complete state first. Do not make cosmetic delivery
+	// eligible until that snapshot has actually crossed the socket.
+	select {
+	case <-ctx.Done():
+		return
+	case <-hubConn.Closed():
+		return
+	case initial := <-hubConn.Updates():
+		if !writeUpdate(ctx, conn, initial, policy, deadline) {
+			return
+		}
+	}
 
 	for {
+		// Give closure, due heartbeats and reliable room updates first chance before
+		// selecting cosmetic work.
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		select {
+		case <-hubConn.Closed():
+			closeWithin(conn, websocket.StatusGoingAway, "the room closed this connection", deadline)
+			return
+		default:
+		}
+		select {
+		case <-ticker.C:
+			if !pingSocket(ctx, conn, deadline) {
+				return
+			}
+			continue
+		default:
+		}
+		select {
+		case update := <-hubConn.Updates():
+			if !writeUpdate(ctx, conn, update, policy, deadline) {
+				return
+			}
+			continue
+		default:
+		}
+
 		select {
 		case <-ctx.Done():
 			return
@@ -395,21 +449,44 @@ func writeUpdates(
 			return
 		case <-ticker.C:
 			// Ping detects a dead network path even when no game actions arrive.
-			pingCtx, done := context.WithTimeout(ctx, deadline)
-			err := conn.Ping(pingCtx)
-			done()
-			if err != nil {
+			if !pingSocket(ctx, conn, deadline) {
 				return
 			}
 		case update := <-hubConn.Updates():
-			body, err := encodeUpdate(update)
-			if err != nil {
-				log.Printf("encoding an update: %v", err)
+			if !writeUpdate(ctx, conn, update, policy, deadline) {
 				return
 			}
-
-			// Bound each write so a non-reading client cannot hold this loop
-			// indefinitely.
+		case event := <-hubConn.Throws():
+			// Priorities can become ready after selection. Cosmetic delivery is
+			// disposable, so drop this event rather than put it ahead of them.
+			select {
+			case <-ctx.Done():
+				return
+			case <-hubConn.Closed():
+				closeWithin(conn, websocket.StatusGoingAway, "the room closed this connection", deadline)
+				return
+			case <-ticker.C:
+				if !pingSocket(ctx, conn, deadline) {
+					return
+				}
+				continue
+			case update := <-hubConn.Updates():
+				if !writeUpdate(ctx, conn, update, policy, deadline) {
+					return
+				}
+				continue
+			default:
+			}
+			// Old cosmetic work is less truthful than dropping it: every displayed
+			// object should still be able to enter from outside the current viewport.
+			if now().Sub(event.AcceptedAt) >= 1200*time.Millisecond {
+				continue
+			}
+			body, err := encodeThrow(event, now())
+			if err != nil {
+				log.Printf("encoding a throw: %v", err)
+				continue
+			}
 			writeCtx, done := context.WithTimeout(ctx, deadline)
 			err = conn.Write(writeCtx, websocket.MessageText, body)
 			done()
@@ -418,6 +495,31 @@ func writeUpdates(
 			}
 		}
 	}
+}
+
+func pingSocket(ctx context.Context, conn *websocket.Conn, deadline time.Duration) bool {
+	pingCtx, done := context.WithTimeout(ctx, deadline)
+	err := conn.Ping(pingCtx)
+	done()
+	return err == nil
+}
+
+func writeUpdate(
+	ctx context.Context,
+	conn *websocket.Conn,
+	update hub.Update,
+	policy throwPolicyMessage,
+	deadline time.Duration,
+) bool {
+	body, err := encodeUpdate(update, policy)
+	if err != nil {
+		log.Printf("encoding an update: %v", err)
+		return false
+	}
+	writeCtx, done := context.WithTimeout(ctx, deadline)
+	err = conn.Write(writeCtx, websocket.MessageText, body)
+	done()
+	return err == nil
 }
 
 // readIntents reads what the browser sends and turns it into commands for the room.
@@ -479,6 +581,11 @@ func dispatch(room *hub.Room, hubConn *hub.Conn, msg clientMessage) bool {
 		return room.SetDeck(hubConn, msg.Deck)
 	case intentRename:
 		return room.Rename(hubConn, msg.Name)
+	case intentThrow:
+		// Throw is best effort. A full cosmetic room inbox is an intentional
+		// silent drop and must not end the socket reader.
+		room.Throw(hubConn, game.ParticipantID(msg.Target), hub.ThrowObject(msg.Object))
+		return true
 	default:
 
 		return true

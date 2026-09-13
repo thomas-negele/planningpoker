@@ -14,6 +14,7 @@
   import NameDialog from './NameDialog.svelte';
   import RoomSettingsDialog from './RoomSettingsDialog.svelte';
   import Seat from './Seat.svelte';
+  import ThrowLayer from './ThrowLayer.svelte';
 
   interface Props {
     roomId: string;
@@ -230,6 +231,8 @@
               push={position.push}
               canRename={connection.canAct}
               onedit={() => (editingName = true)}
+              canThrow={connection.canThrow}
+              onthrow={(object) => connection.throwAt(participant.id, object)}
             />
           {/each}
         </ul>
@@ -261,6 +264,7 @@
         connection.vote(card);
       }}
     />
+    <ThrowLayer {connection} />
   </div>
 
   {#if editingName}
