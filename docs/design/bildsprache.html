@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning Poker — Gestaltungsvorlage</title>
+<style>
+/* ==========================================================================
+   Gestaltungsvorlage für Planning Poker
+   --------------------------------------------------------------------------
+   WAS DIESE DATEI IST
+   Ein Entwurfsdokument, kein Teil der Anwendung. Sie liegt unter docs/ und
+   wird deshalb weder von Vite gebündelt noch vom Go-Prozess ausgeliefert;
+   kein Besucher der Anwendung bekommt sie je zu sehen. Zum Ansehen im
+   Projektverzeichnis `open docs/design/bildsprache.html` aufrufen.
+
+   WAS HIER VERBINDLICH IST — UND WAS NICHT
+   Verbindlich für die laufende Anwendung sind ausschließlich die Variablen in
+   web/src/app.css und die Komponenten unter web/src/components/. Diese Datei
+   zeigt, was aus einem bestimmten Satz von Werten folgt. Weicht sie vom Code
+   ab, hat der Code recht und diese Datei ist veraltet.
+
+   WIE SIE AUFGEBAUT IST
+   Unten steht EIN Satz Bauteil-CSS („Bauteile", ab der gleichnamigen
+   Überschrift), das ausschließlich mit var(--…) arbeitet und die Struktur und
+   die Klassennamen der echten Svelte-Komponenten nachbildet. Jede Richtung
+   setzt darüber nur einen Block von Variablenwerten. Der Unterschied zwischen
+   den Richtungen ist damit — bis auf ausdrücklich markierte Ausnahmen — ein
+   Unterschied in Werten, nicht in Code. Das ist keine Kosmetik des Dokuments,
+   sondern die Behauptung, dass die Umsetzung im Wesentlichen ein Wertetausch
+   in app.css ist.
+
+   SCHRIFT
+   Alle Richtungen laufen absichtlich auf dem heutigen System-Schriftstapel
+   (system-ui und Rückfallebenen). Eine mitgelieferte Schrift wäre eine eigene
+   Entscheidung mit eigenen Kosten — eine .woff2-Datei im Repository, weil die
+   Regel „nichts von fremden Servern" Google Fonts verbietet. Solange die nicht
+   getroffen ist, zeigt dieses Dokument genau das, was die Anwendung heute
+   tatsächlich rendern kann, und lügt nicht mit einer Schrift, die es im Projekt
+   nicht gibt.
+   ========================================================================== */
+
+/* --- Dokument-Rahmen (nicht Teil der Anwendung) ---------------------------- */
+
+:root {
+  --doc-bg: #0f1115;
+  --doc-panel: #171a20;
+  --doc-border: #272c35;
+  --doc-text: #e8ebf0;
+  --doc-dim: #99a1ae;
+  --doc-accent: #7aa2ff;
+  --doc-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --doc-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--doc-bg);
+  color: var(--doc-text);
+  font-family: var(--doc-font);
+  line-height: 1.55;
+}
+
+.doc {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+.doc h1 {
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+
+.doc > .lede {
+  color: var(--doc-dim);
+  max-width: 46rem;
+  margin: 0 0 1.5rem;
+}
+
+.doc h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.15rem;
+}
+
+.doc h2 .kicker {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--doc-dim);
+  margin-bottom: 0.3rem;
+}
+
+.doc h3 {
+  font-size: 0.95rem;
+  margin: 1.75rem 0 0.5rem;
+  color: var(--doc-text);
+}
+
+.doc p { max-width: 46rem; }
+
+.doc .note {
+  border-left: 2px solid var(--doc-border);
+  padding-left: 1rem;
+  color: var(--doc-dim);
+  font-size: 0.92rem;
+}
+
+.doc dl.tradeoff {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  max-width: 46rem;
+  margin: 1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.doc dl.tradeoff dt {
+  font-weight: 600;
+  color: var(--doc-dim);
+  white-space: nowrap;
+}
+
+.doc dl.tradeoff dd { margin: 0; }
+
+.doc section.variant {
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--doc-border);
+}
+
+.doc nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.doc nav a {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--doc-border);
+  border-radius: 999px;
+  color: var(--doc-text);
+  text-decoration: none;
+  background: var(--doc-panel);
+}
+
+.doc nav a:hover { border-color: var(--doc-accent); }
+
+/* Farbproben und Wertelisten, beide zur Laufzeit aus den echten Variablen erzeugt. */
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatches li {
+  width: 7.6rem;
+  font-size: 0.68rem;
+  font-family: var(--doc-mono);
+  color: var(--doc-dim);
+  line-height: 1.35;
+}
+
+.swatches .chip {
+  display: block;
+  height: 2.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--doc-border);
+  margin-bottom: 0.3rem;
+}
+
+.swatches .token { color: var(--doc-text); display: block; word-break: break-all; }
+
+details.tokens { margin: 1.25rem 0 0; }
+
+details.tokens summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--doc-dim);
+}
+
+details.tokens pre {
+  margin: 0.75rem 0 0;
+  padding: 1rem;
+  background: #0b0d11;
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--doc-mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: #cfd6e2;
+}
+
+/* Ein Bildschirm-Ausschnitt. Feste Größe, damit alle Richtungen im selben
+   Maßstab nebeneinander liegen; auf schmalen Fenstern wird waagerecht
+   gescrollt statt ungefragt umgebrochen, denn ein Umbruch würde den
+   Schmalbild-Zustand der App zeigen und nicht den, der gemeint ist. */
+
+.frames {
+  margin: 1.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.frame {
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--doc-panel);
+}
+
+.frame > figcaption {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--doc-dim);
+  border-bottom: 1px solid var(--doc-border);
+}
+
+.frame > .scroll { overflow-x: auto; }
+
+/* ==========================================================================
+   BAUTEILE
+   Ab hier wird die Anwendung nachgebildet. Struktur, Klassennamen und Maße
+   folgen den echten Komponenten; jede Farbe, jede Rundung und jeder Schatten
+   kommt aus einer Variablen, die eine Richtung weiter unten setzt.
+   ========================================================================== */
+
+.app {
+  font-family: var(--font-stack);
+  background: var(--background);
+  color: var(--text);
+  /* Den Ausschnitt ausfüllen, aber nie unter die Breite fallen, ab der die
+     echte Anwendung auf die Listendarstellung umschaltet (58rem). */
+  width: 100%;
+  min-width: 60rem;
+  /* Hoch genug, dass der Sitzkranz vollständig neben den Tisch passt: Arena
+     20.25rem plus 7rem Rand oben und 5rem unten, dazu Kopfzeile und Deck.
+     Zu wenig Höhe staucht den Tischbereich und schiebt die unteren Sitze ins
+     Deck — das wäre ein Fehler dieses Dokuments und nicht der Anwendung. */
+  min-height: 44rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.app.centered { align-items: center; justify-content: center; padding: 2.5rem; min-height: 30rem; }
+
+/* --- Startbildschirm (EntryScreen.svelte) --- */
+
+.entry-card {
+  background: var(--surface);
+  padding: 3rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-panel);
+  text-align: center;
+  max-width: 30rem;
+}
+
+.entry-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  letter-spacing: var(--display-tracking);
+  font-weight: var(--display-weight);
+}
+
+.entry-card .sub { margin: 0 0 2rem; color: var(--text-dim); line-height: 1.5; }
+
+.entry-card .legend {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin: 0 0 0.55rem;
+}
+
+.deck-options { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+
+.deck-options span {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.deck-options .chosen span {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
+/* --- Knöpfe (app.css) --- */
+
+.btn {
+  font: inherit;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  padding: 0.55rem 1.1rem;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-accent);
+}
+
+.btn.ghost { background: none; color: var(--text-dim); }
+
+.btn.disabled { opacity: 0.45; }
+
+/* --- Kopfzeile (RoomView.svelte) --- */
+
+.room-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0;
+}
+
+.room-header .right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.room-header .middle { display: flex; justify-content: center; }
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.conn .dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--good);
+  box-shadow: var(--shadow-dot);
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-dim);
+}
+
+/* --- Tisch und Sitze (RoomView.svelte, Seat.svelte) --- */
+
+.table-area { flex: 1; display: grid; place-items: center; padding: 7rem 7.5rem 5rem; }
+
+.arena { position: relative; width: 36rem; aspect-ratio: 16 / 9; }
+
+.table {
+  position: absolute;
+  inset: 0;
+  background: var(--table-surface);
+  border: 1px solid var(--felt-edge);
+  border-radius: 48% / 34%;
+  box-shadow: var(--table-inner);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1.45rem 3rem;
+  text-align: center;
+}
+
+.table .action { height: 2.4rem; display: flex; align-items: center; }
+.table .action.spent { visibility: hidden; }
+
+.table .info {
+  min-height: 11.5rem;
+  width: 100%;
+  max-width: 19rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.table .status { margin: 0; color: var(--text-dim); font-size: 0.85rem; }
+
+.seats { margin: 0; padding: 0; list-style: none; }
+
+.seats > .seat {
+  position: absolute;
+  left: calc(50% + var(--edge-x) * 50% + var(--push-x) * var(--push));
+  top: calc(50% + var(--edge-y) * 50% + var(--push-y) * var(--push));
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+/* Die fünf Sitzpositionen sind mit der Formel aus RoomView.svelte:52 für fünf
+   Teilnehmer gerechnet: Punkt auf der 16:9-Ellipse, nach außen verschoben
+   entlang deren Normale um die halbe Sitzbreite plus Abstand. */
+.seats > .seat:nth-child(1) { --edge-x: 0;      --edge-y: -1;     --push-x: 0;      --push-y: -1;    --push: 4.05rem; }
+.seats > .seat:nth-child(2) { --edge-x: 0.951;  --edge-y: -0.309; --push-x: 0.866;  --push-y: -0.5;  --push: 7.68rem; }
+.seats > .seat:nth-child(3) { --edge-x: 0.588;  --edge-y: 0.809;  --push-x: 0.378;  --push-y: 0.926; --push: 6.06rem; }
+.seats > .seat:nth-child(4) { --edge-x: -0.588; --edge-y: 0.809;  --push-x: -0.378; --push-y: 0.926; --push: 6.06rem; }
+.seats > .seat:nth-child(5) { --edge-x: -0.951; --edge-y: -0.309; --push-x: -0.866; --push-y: -0.5;  --push: 7.68rem; }
+
+.card-slot { height: 4.2rem; display: flex; align-items: flex-end; }
+
+.seat .card {
+  width: 2.9rem;
+  height: 4.1rem;
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.seat .card.face-down {
+  background: var(--card-back-pattern);
+  border-color: var(--card-back-border);
+  box-shadow: var(--shadow-card);
+}
+
+.seat .card.face-up {
+  background: var(--card-face);
+  color: var(--card-face-text);
+  border-color: var(--card-face-border);
+  box-shadow: var(--shadow-card);
+}
+
+.seat .card.empty {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-dim);
+  font-weight: 400;
+  box-shadow: none;
+}
+
+.who { display: flex; align-items: center; gap: 0.35rem; }
+.who .name { font-size: 0.9rem; white-space: nowrap; }
+.seat.you .name { color: var(--accent); font-weight: 600; }
+.seat.away { opacity: 0.55; }
+
+.away-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.35rem;
+}
+
+/* --- Auszählung (Results.svelte) --- */
+
+.results { display: flex; flex-direction: column; gap: 0.45rem; width: 100%; }
+
+.results .chart { margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+
+.results .chart.asides {
+  flex-direction: row;
+  justify-content: center;
+  gap: 1.1rem;
+  border-top: 1px solid var(--felt-edge);
+  padding-top: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.results .chart.asides .row { flex: 1; max-width: 9rem; }
+
+.results .row { display: flex; align-items: center; gap: 0.45rem; }
+
+.results dt {
+  flex: none;
+  width: 1.9rem;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.results dd { margin: 0; flex: 1; display: flex; align-items: center; gap: 0.4rem; }
+
+.results .track {
+  flex: 1;
+  height: 0.75rem;
+  border-radius: var(--radius-bar);
+  background: var(--bar-track);
+  overflow: hidden;
+}
+
+.results .bar { display: block; height: 100%; border-radius: var(--radius-bar); background: var(--bar-fill); }
+
+.results .count {
+  flex: none;
+  width: 0.9rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.results .row.none dt, .results .row.none .count { color: var(--text-dim); opacity: 0.6; }
+
+.results .summary { margin: 0.1rem 0 0; text-align: center; font-size: 0.78rem; color: var(--text-dim); }
+
+/* --- Das Deck am unteren Rand (Deck.svelte) --- */
+
+.deck {
+  padding: 1rem 1rem 1.25rem;
+  background: var(--deck-veil);
+}
+
+.deck ul {
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.deck .card {
+  width: 3.4rem;
+  height: 4.8rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+}
+
+.deck .card.hovered { transform: translateY(-6px); border-color: var(--accent); }
+
+.deck .card.played {
+  transform: translateY(-12px);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-accent);
+}
+
+.deck.spent .card { opacity: 0.4; }
+
+/* ==========================================================================
+   RICHTUNGEN
+   Jeder Block setzt nur Werte. Wo eine Richtung zusätzlich eine Änderung in
+   einer Komponente braucht, steht das als Kommentar dabei und im Fließtext.
+   ========================================================================== */
+
+/* --- Ist-Zustand: die Werte, die heute in web/src/app.css stehen ---------- */
+
+.ist {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #10151c;
+  --surface: #1a2230;
+  --surface-raised: #232d3d;
+  --border: #33415a;
+
+  --text: #e6ebf2;
+  --text-dim: #8d9bb0;
+
+  --accent: #4c8dff;
+  --accent-dim: #35507f;
+  --accent-text: #0b1220;
+
+  --good: #3ecf8e;
+  --bad: #ff6b6b;
+
+  --felt: #16362b;
+  --felt-edge: #1f5442;
+
+  --card-face: #eef2f8;
+  --card-face-text: #121a26;
+  --card-face-border: #cbd5e4;
+  --card-back: #2b3950;
+  --card-back-alt: #35476a;
+
+  /* Abgeleitete Werte. Heute stehen diese nicht als Variablen in app.css,
+     sondern fest in den Komponenten; hier sind sie herausgezogen, damit die
+     Richtungen sie überhaupt verändern können. */
+  --radius-panel: 16px;
+  --radius-card: 7px;
+  --radius-control: 8px;
+  --radius-bar: 3px;
+  --display-tracking: -0.02em;
+  --display-weight: 700;
+  --panel-border: transparent;
+  --shadow-panel: none;
+  --shadow-card: none;
+  --shadow-accent: none;
+  --shadow-dot: none;
+  --table-surface: var(--felt);
+  --table-inner: none;
+  --card-back-pattern: repeating-linear-gradient(45deg, var(--card-back) 0 6px, var(--card-back-alt) 6px 12px);
+  --card-back-border: var(--accent-dim);
+  --bar-track: var(--felt-edge);
+  --bar-fill: var(--card-face);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Richtung A: „Tischlampe" ---------------------------------------------
+   Dieselbe Anlage wie heute, aber kälteres Grundschwarz, ruhigere Trennlinien
+   und ein warmes Messing-Gelb als Akzent statt des Rahmenwerk-Blaus. Der Tisch
+   wird von oben angeleuchtet statt flächig gefüllt.
+   Braucht über Werte hinaus: nichts. Der Lichtkegel ist ein Gradient im
+   --table-surface, der Innenschatten ein box-shadow — beide als Variable
+   setzbar, ohne eine Komponente anzufassen. -------------------------------- */
+
+.dir-a {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #0c0f13;
+  --surface: #14181f;
+  --surface-raised: #1d222b;
+  --border: #2b323d;
+
+  --text: #edf0f4;
+  --text-dim: #97a1b0;
+
+  --accent: #f0b429;
+  --accent-dim: #6d5518;
+  --accent-text: #1b1305;
+
+  --good: #4ec98d;
+  --bad: #ff7a70;
+
+  --felt: #14372c;
+  --felt-edge: #1f4c3c;
+
+  --card-face: #f8f4ec;
+  --card-face-text: #171d26;
+  --card-face-border: #ddd4c3;
+  --card-back: #12261e;
+  --card-back-alt: #1a3529;
+
+  --radius-panel: 18px;
+  --radius-card: 10px;
+  --radius-control: 9px;
+  --radius-bar: 999px;
+  --display-tracking: -0.03em;
+  --display-weight: 700;
+  --panel-border: #20262f;
+  --shadow-panel: 0 1.5rem 3rem rgb(0 0 0 / 45%);
+  --shadow-card: 0 0.45rem 1rem rgb(0 0 0 / 40%);
+  --shadow-accent: 0 0.4rem 1rem rgb(240 180 41 / 22%);
+  --shadow-dot: 0 0 0.5rem rgb(78 201 141 / 60%);
+  /* Der Lichtkegel. Eng gefasst und weit oben angesetzt, damit er als Licht
+     von einer Lampe über dem Tisch gelesen wird und nicht als flächige
+     Einfärbung; zum Rand hin läuft er deutlich ins Dunkle. */
+  --table-surface: radial-gradient(70% 95% at 50% 4%, #2d6c56 0%, #21503f 35%, #163629 65%, #0f2419 100%);
+  --table-inner: inset 0 0.15rem 3rem rgb(0 0 0 / 45%), 0 1.5rem 3.5rem rgb(0 0 0 / 40%);
+  /* Kartenrücken im Ton des Tisches statt in einer dritten Farbe; die
+     Messing-Haarlinie am Rand bindet sie an den Akzent. */
+  --card-back-pattern: repeating-linear-gradient(45deg, var(--card-back) 0 6px, var(--card-back-alt) 6px 12px);
+  --card-back-border: #4a4022;
+  --bar-track: rgb(255 255 255 / 8%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Richtung B: „Klarraum" -----------------------------------------------
+   Nimmt die Spielmetapher heraus. Kein Filz: der Tisch ist eine leicht
+   erhöhte Fläche in der Oberflächenfarbe mit feinem Rand und einem Hauch Licht
+   von oben. Maximaler Kontrast, weiße Karten, Indigo als Akzent.
+   Braucht über Werte hinaus: die Kartenrückseite ist kein Streifenmuster mehr,
+   sondern eine ruhige Fläche mit einer kleinen Marke in der Mitte. Als
+   Variable ist das ein Gradient ohne Streifen; die Marke selbst wäre eine
+   kleine Ergänzung in Seat.svelte. Hier ist sie als Gradient angedeutet. ---- */
+
+.dir-b {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #08090b;
+  --surface: #101216;
+  --surface-raised: #171a20;
+  --border: #23272f;
+
+  --text: #f2f4f7;
+  --text-dim: #8a919d;
+
+  --accent: #8b7bff;
+  --accent-dim: #3d3775;
+  --accent-text: #0a0812;
+
+  --good: #46d39a;
+  --bad: #ff6b6b;
+
+  --felt: #12151b;
+  --felt-edge: #272c36;
+
+  --card-face: #ffffff;
+  --card-face-text: #0d1014;
+  --card-face-border: #ffffff;
+  --card-back: #242936;
+  --card-back-alt: #1b1f29;
+
+  --radius-panel: 14px;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-bar: 999px;
+  --display-tracking: -0.04em;
+  --display-weight: 650;
+  --panel-border: #1c2027;
+  --shadow-panel: 0 1.25rem 2.5rem rgb(0 0 0 / 60%);
+  --shadow-card: 0 0.5rem 1.25rem rgb(0 0 0 / 55%);
+  --shadow-accent: 0 0.4rem 1.2rem rgb(139 123 255 / 30%);
+  --shadow-dot: 0 0 0.5rem rgb(70 211 154 / 55%);
+  --table-surface: radial-gradient(110% 140% at 50% 0%, #1a1e27 0%, #14171d 50%, #0f1116 100%);
+  --table-inner: inset 0 1px 0 rgb(255 255 255 / 6%), 0 1.75rem 4rem rgb(0 0 0 / 55%);
+  /* Die Rückseite muss auf dem sehr dunklen Grund ohne Zögern als gelegte
+     Karte lesbar sein, deshalb heller als der Hintergrund statt nur anders. */
+  --card-back-pattern: radial-gradient(55% 55% at 50% 50%, rgb(139 123 255 / 20%) 0%, transparent 70%), linear-gradient(#262b39, #1c202a);
+  --card-back-border: #3a4053;
+  --bar-track: rgb(255 255 255 / 7%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Richtung C: „Kartenzimmer" -------------------------------------------
+   Geht in die andere Richtung und bekennt sich zum Spiel: warmer, dunkler
+   Raum, echter grüner Filz mit feiner Körnung, cremefarbene Karten mit klassisch
+   rotem Rücken, Messing als Akzent. Die Richtung, die am besten zu den
+   geworfenen Papierkugeln passt.
+   Braucht über Werte hinaus: die Körnung des Filzes ist ein zweiter, sehr
+   flacher Gradient im --table-surface. Kein Bild, keine Datei, kein fremder
+   Server — aber sie muss maßvoll bleiben, sonst sieht der Tisch schmutzig
+   statt textiler aus. ------------------------------------------------------ */
+
+.dir-c {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #16120e;
+  --surface: #211b15;
+  --surface-raised: #2c241b;
+  --border: #3e3226;
+
+  --text: #f4ece0;
+  --text-dim: #a89683;
+
+  --accent: #d0a52c;
+  --accent-dim: #6b5417;
+  --accent-text: #1b1407;
+
+  --good: #63c48c;
+  --bad: #f1706a;
+
+  --felt: #1d4e36;
+  /* Gedämpftes Messing. Eine helle, durchgezogene Kante liest sich als
+     aufgemalter Rahmen; wertig wirkt sie erst, wenn sie fast verschwindet. */
+  --felt-edge: #5b4a21;
+
+  --card-face: #fbf7ed;
+  --card-face-text: #1b1a17;
+  --card-face-border: #e2d8c2;
+  --card-back: #5d2b2b;
+  --card-back-alt: #6e3434;
+
+  --radius-panel: 12px;
+  --radius-card: 8px;
+  --radius-control: 7px;
+  --radius-bar: 2px;
+  --display-tracking: -0.01em;
+  --display-weight: 700;
+  --panel-border: #33291f;
+  --shadow-panel: 0 1.5rem 3rem rgb(0 0 0 / 55%);
+  --shadow-card: 0 0.5rem 0.9rem rgb(0 0 0 / 45%);
+  --shadow-accent: 0 0.35rem 0.9rem rgb(208 165 44 / 25%);
+  --shadow-dot: 0 0 0.45rem rgb(99 196 140 / 55%);
+  /* Filz: Grundverlauf plus eine sehr flache Körnung aus zwei feinen
+     Streifenmustern, die sich kreuzen. */
+  --table-surface:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 4%) 0 1px, transparent 1px 3px),
+    radial-gradient(130% 160% at 50% 10%, #276144 0%, #1d4e36 45%, #133d29 100%);
+  --table-inner: inset 0 0 0 1px rgb(208 165 44 / 14%), inset 0 0.2rem 3rem rgb(0 0 0 / 45%), 0 1.5rem 3rem rgb(0 0 0 / 50%);
+  --card-back-pattern:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 7%) 0 2px, transparent 2px 7px),
+    linear-gradient(var(--card-back), var(--card-back-alt));
+  --card-back-border: #7d4040;
+  --bar-track: rgb(0 0 0 / 28%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 70%, transparent);
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>Planning Poker — Gestaltungsvorlage</h1>
+<p class="lede">
+  Drei Richtungen für eine neue Bildsprache, jede in den drei Zuständen, die in der Anwendung
+  zählen. Alle drei bleiben dunkel, alle drei laufen auf dem heutigen System-Schriftstapel, und
+  alle drei benutzen dieselben CSS-Variablennamen wie <code>web/src/app.css</code> — der
+  Unterschied zwischen ihnen ist ein Unterschied in Werten, nicht in Code.
+</p>
+<p class="note">
+  Diese Datei ist ein Entwurfsdokument und kein Teil der ausgelieferten Anwendung. Sie liegt unter
+  <code>docs/</code>, wird deshalb nicht gebündelt und nicht ausgeliefert, und kein Besucher
+  bekommt sie zu sehen. Verbindlich für das Aussehen der laufenden Anwendung sind allein
+  <code>web/src/app.css</code> und die Komponenten; weicht dieses Dokument davon ab, hat der Code
+  recht.
+</p>
+
+<nav>
+  <ol>
+    <li><a href="#ist">Ist-Zustand</a></li>
+    <li><a href="#a">A — Tischlampe</a></li>
+    <li><a href="#b">B — Klarraum</a></li>
+    <li><a href="#c">C — Kartenzimmer</a></li>
+  </ol>
+</nav>
+
+<!-- ==================== IST ==================== -->
+<section class="variant" id="ist" data-variant="ist">
+  <h2><span class="kicker">Zum Vergleich</span>Ist-Zustand</h2>
+  <p>
+    Die Werte, die heute in <code>web/src/app.css</code> stehen, mit derselben Nachbildung der
+    Bauteile wie bei den Richtungen darunter. Dass hier fast keine Schatten auftauchen, ist kein
+    Versehen der Nachbildung: die Anwendung setzt heute tatsächlich fast keine.
+  </p>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Werte als CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== A ==================== -->
+<section class="variant" id="a" data-variant="dir-a">
+  <h2><span class="kicker">Richtung A</span>Tischlampe</h2>
+  <p>
+    Behält die Anlage von heute — dunkler Raum, grüner Tisch, helle Karten — und schärft sie.
+    Drei Eingriffe tragen die Wirkung: das Grundschwarz wird kühler und tiefer, die Trennlinien
+    werden leiser (heute sind sie mit <code>#33415a</code> so kräftig, dass sie mitreden statt nur
+    zu trennen), und der Akzent wechselt von Blau auf ein warmes Messing-Gelb. Der Tisch wird nicht
+    mehr flächig gefüllt, sondern von oben angeleuchtet.
+  </p>
+  <p>
+    Der Grund für den Farbwechsel: <code>#4c8dff</code> ist das Blau, das jedes Rahmenwerk
+    mitliefert — es ist nicht falsch, es ist nur niemandes Entscheidung. Warmes Gelb auf
+    Beinahe-Schwarz liest sich als angeleuchteter Tisch, und die cremefarbenen Karten haben damit
+    etwas, wogegen sie stehen, statt gegen eine zweite kalte Farbe.
+  </p>
+  <dl class="tradeoff">
+    <dt>Kosten</dt><dd>Keine neuen Dateien, keine neue Schrift. Umsetzbar als Wertetausch in <code>app.css</code> plus das Herausziehen der heute fest verdrahteten Rundungen und Schatten.</dd>
+    <dt>Risiko</dt><dd>Gelb als Akzent auf Dunkel ist kontraststark, aber gelber Text auf hellen Flächen wäre es nicht — der Akzent darf Fläche und Rahmen sein, nicht Schrift auf Weiß.</dd>
+    <dt>Verlust</dt><dd>Keiner, den ich sehe. Das ist die konservativste der drei Richtungen.</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Werte als CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== B ==================== -->
+<section class="variant" id="b" data-variant="dir-b">
+  <h2><span class="kicker">Richtung B</span>Klarraum</h2>
+  <p>
+    Nimmt die Spielmetapher heraus. Es gibt keinen Filz mehr: der Tisch ist eine leicht erhöhte
+    Fläche in der Oberflächenfarbe, mit einem feinen Rand und einem Hauch Licht an der Oberkante.
+    Die Karten sind reinweiß mit klarem Schlagschatten, die Rückseite ist eine ruhige Fläche mit
+    einer Marke statt eines Streifenmusters, der Akzent ist ein Indigo. Das Ergebnis sieht aus wie
+    ein Werkzeug, nicht wie ein Spieltisch.
+  </p>
+  <dl class="tradeoff">
+    <dt>Kosten</dt><dd>Wertetausch plus eine kleine Ergänzung in <code>Seat.svelte</code> für die Marke auf der Kartenrückseite. Hier ist sie als Lichtfleck angedeutet.</dd>
+    <dt>Gewinn</dt><dd>Der höchste Kontrast der drei und damit die beste Lesbarkeit; außerdem die Richtung, die am wenigsten altert.</dd>
+    <dt>Verlust</dt><dd>Der Tisch als Tisch. Das trifft ausgerechnet die Papierkugeln und Blumen, die quer über ihn fliegen — die Verspieltheit dieser Funktion hat dann keinen Ort mehr, an dem sie stattfindet.</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Werte als CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== C ==================== -->
+<section class="variant" id="c" data-variant="dir-c">
+  <h2><span class="kicker">Richtung C</span>Kartenzimmer</h2>
+  <p>
+    Geht in die entgegengesetzte Richtung und bekennt sich zum Spiel: ein warmer, dunkler Raum wie
+    aus Holz, echter grüner Filz mit feiner Körnung und einer Messingkante, cremefarbene Karten mit
+    klassisch rotem Rücken. Der Akzent ist Messing. Von den drei Richtungen ist das die einzige mit
+    einer eigenen Handschrift, und die einzige, in der die geworfene Papierkugel selbstverständlich
+    wirkt.
+  </p>
+  <dl class="tradeoff">
+    <dt>Kosten</dt><dd>Wertetausch. Die Körnung des Filzes sind zwei sehr flache gekreuzte Streifenmuster als Gradient — kein Bild, keine Datei, kein fremder Server.</dd>
+    <dt>Risiko</dt><dd>Warme Dunkelheit ist anfälliger für zu wenig Kontrast als kalte, und die Körnung kippt ab einer bestimmten Stärke von „textil" nach „schmutzig". Beides ist eine Frage der Disziplin bei der Umsetzung, nicht der Richtung.</dd>
+    <dt>Gewinn</dt><dd>Am weitesten weg von „sieht aus wie jedes andere Werkzeug".</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Werte als CSS</summary><pre data-code></pre></details>
+</section>
+
+<section class="variant">
+  <h2><span class="kicker">Beobachtung</span>Zwei Dinge, die keine Farbe behebt</h2>
+  <p>
+    <strong>Der Tisch ist leer, solange die Runde läuft.</strong> In allen vier Abschnitten oben ist
+    derselbe Effekt zu sehen: während abgestimmt wird, steht auf der großen Fläche nichts als der
+    Knopf <em>Reveal</em> und die Zeile „Waiting for votes…". Der Platz ist dort reserviert, weil
+    nach dem Aufdecken die Auszählung hineinmuss und der Tisch dabei nicht springen soll — das ist
+    richtig so und in <code>RoomView.svelte</code> ausdrücklich begründet. Es bleibt trotzdem die
+    auffälligste Schwäche der Ansicht, und sie ist eine Frage der Anordnung, nicht der Palette.
+    Etwas daran zu ändern wäre ein eigener Vorschlag, weil es die Spezifikation
+    <code>table-ui</code> berührt; hier wird es nur benannt.
+  </p>
+  <p>
+    <strong>A und C sind Nachbarn, B ist der Ausreißer.</strong> Ehrlicherweise unterscheiden sich
+    Tischlampe und Kartenzimmer weniger, als zwei Namen vermuten lassen: beide behalten den grünen
+    Tisch und einen gelben Akzent. Ihr Unterschied liegt in der Temperatur des Raums drumherum, in
+    der Farbe der Kartenrücken und in der Körnung. Wer zwischen A und C schwankt, wählt keine
+    zwei Welten, sondern zwei Grade derselben. Wer B wählt, wählt etwas anderes.
+  </p>
+</section>
+
+<section class="variant">
+  <h2><span class="kicker">Danach</span>Was aus der Auswahl folgt</h2>
+  <p>
+    Sobald eine Richtung gewählt ist, wird sie über den openspec-Ablauf umgesetzt: ein Änderungs­vorschlag
+    mit Begründung, Design-Dokument, Aufgabenliste und Prüfnachweis. In die Spezifikationen unter
+    <code>openspec/specs/</code> wandert nur, was dauerhaft gelten muss und nicht bloß heute so
+    aussieht — Mindestkontraste, die Regel, dass die Gestaltung vollständig aus dem eigenen
+    Container kommt, und die Rücksicht auf <code>prefers-reduced-motion</code> bei Bewegung. Einzelne
+    Farbwerte und Eckenradien gehören nicht dorthin, sondern nach <code>app.css</code> und in dieses
+    Dokument.
+  </p>
+  <p>
+    Die Verhaltens-Spezifikationen sind dabei die Abnahmekriterien und nicht Verhandlungsmasse: die
+    Sitze stehen weiter auf einer Ellipse um den Tisch, ab <code>58rem</code> Breite abwärts werden
+    sie zur Liste darunter, der voll zulässige Name wird ungekürzt angezeigt, das Deck bleibt am
+    unteren Rand erreichbar, und es wird weiterhin kein Mittelwert berechnet.
+  </p>
+</section>
+
+</div>
+
+<script>
+/* Baut jede Variante aus einer Vorlage, damit alle Richtungen garantiert
+   denselben Inhalt und dieselben Zustände zeigen und ein Unterschied nie aus
+   einem Tippfehler in einer Kopie stammt. Die Farbproben und die Werteliste
+   werden aus den tatsächlich berechneten Variablen gelesen — sie können
+   deshalb nicht von dem abweichen, was oben im CSS steht. */
+
+const TEILNEHMER = [
+  { name: 'Nadja',  kartenwert: 'L',  hatGespielt: true,  abwesend: false, duSelbst: false },
+  { name: 'Jonas',  kartenwert: 'M',  hatGespielt: true,  abwesend: false, duSelbst: false },
+  { name: 'Timo',   kartenwert: null, hatGespielt: false, abwesend: true,  duSelbst: false },
+  { name: 'Pia',    kartenwert: null, hatGespielt: false, abwesend: false, duSelbst: false },
+  { name: 'Thomas', kartenwert: 'M',  hatGespielt: true,  abwesend: false, duSelbst: true },
+];
+
+const DECK = ['XS', 'S', 'M', 'L', 'XL', '?', '☕'];
+
+/* Die Auszählung, die zu den Karten oben passt: M zweimal, L einmal,
+   Kaffee einmal, Timo war abwesend und hat nicht gewählt. */
+const SKALA = [
+  { karte: 'XL', anzahl: 0 },
+  { karte: 'L',  anzahl: 1 },
+  { karte: 'M',  anzahl: 2 },
+  { karte: 'S',  anzahl: 0 },
+  { karte: 'XS', anzahl: 0 },
+];
+const NEBENKARTEN = [
+  { karte: '?',  anzahl: 0 },
+  { karte: '☕', anzahl: 1 },
+];
+
+const ZAHNRAD = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M6.7 1.5h2.6l.4 1.6c.4.2.8.4 1.1.7l1.6-.5 1.3 2.3-1.2 1.1a5 5 0 010 1.3l1.2 1.1-1.3 2.3-1.6-.5c-.3.3-.7.5-1.1.7l-.4 1.6H6.7l-.4-1.6c-.4-.2-.8-.4-1.1-.7l-1.6.5-1.3-2.3L3.5 8a5 5 0 010-1.3L2.3 5.6l1.3-2.3 1.6.5c.3-.3.7-.5 1.1-.7l.4-1.6z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="8" cy="7.35" r="1.75" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`;
+
+const STIFT = `<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+
+function sitz(p, aufgedeckt) {
+  let karte;
+  if (aufgedeckt) {
+    karte = p.kartenwert
+      ? `<span class="card face-up">${p.kartenwert}</span>`
+      : `<span class="card empty">—</span>`;
+  } else if (p.hatGespielt) {
+    karte = `<span class="card face-down"></span>`;
+  } else {
+    karte = `<span class="card empty"></span>`;
+  }
+
+  const name = p.duSelbst
+    ? `<span class="name">${p.name} ${STIFT}</span>`
+    : `<span class="name">${p.name}</span>`;
+
+  return `
+    <li class="seat${p.duSelbst ? ' you' : ''}${p.abwesend ? ' away' : ''}">
+      <div class="card-slot">${karte}</div>
+      <div class="who">${name}${p.abwesend ? '<span class="away-tag">away</span>' : ''}</div>
+    </li>`;
+}
+
+function zeile(eintrag, groesste) {
+  const anteil = groesste === 0 ? 0 : (eintrag.anzahl / groesste) * 100;
+  return `
+    <div class="row${eintrag.anzahl === 0 ? ' none' : ''}">
+      <dt>${eintrag.karte}</dt>
+      <dd>
+        <span class="track"><span class="bar" style="width:${anteil}%"></span></span>
+        <span class="count">${eintrag.anzahl}</span>
+      </dd>
+    </div>`;
+}
+
+function auszaehlung() {
+  const groesste = Math.max(...SKALA.concat(NEBENKARTEN).map((e) => e.anzahl));
+  const stimmen = SKALA.concat(NEBENKARTEN).reduce((s, e) => s + e.anzahl, 0);
+  return `
+    <div class="results">
+      <dl class="chart">${SKALA.map((e) => zeile(e, groesste)).join('')}</dl>
+      <dl class="chart asides">${NEBENKARTEN.map((e) => zeile(e, groesste)).join('')}</dl>
+      <p class="summary">${stimmen} votes.</p>
+    </div>`;
+}
+
+function deck(aufgedeckt) {
+  const karten = DECK.map((karte) => {
+    let klassen = 'card';
+    if (!aufgedeckt && karte === 'M') klassen += ' played';
+    return `<li><span class="${klassen}">${karte}</span></li>`;
+  }).join('');
+  return `<div class="deck${aufgedeckt ? ' spent' : ''}"><ul>${karten}</ul></div>`;
+}
+
+function tisch(aufgedeckt) {
+  return `
+    <div class="app">
+      <div class="room-header">
+        <div class="left"><span class="conn"><span class="dot"></span>Connected</span></div>
+        <div class="middle"><span class="btn">New round</span></div>
+        <div class="right">
+          <span class="icon-btn">${ZAHNRAD}</span>
+          <span class="btn ghost">Invite players</span>
+        </div>
+      </div>
+      <div class="table-area">
+        <div class="arena">
+          <div class="table">
+            <div class="action${aufgedeckt ? ' spent' : ''}"><span class="btn primary">Reveal</span></div>
+            <div class="info">
+              ${aufgedeckt ? auszaehlung() : '<p class="status">Waiting for votes…</p>'}
+            </div>
+          </div>
+          <ul class="seats">${TEILNEHMER.map((p) => sitz(p, aufgedeckt)).join('')}</ul>
+        </div>
+      </div>
+      ${deck(aufgedeckt)}
+    </div>`;
+}
+
+function startbildschirm() {
+  return `
+    <div class="app centered">
+      <div class="entry-card">
+        <h1>Planning Poker</h1>
+        <p class="sub">Start a game, share the link, estimate together.</p>
+        <p class="legend">Deck</p>
+        <div class="deck-options">
+          <label class="chosen"><span>T-shirt sizes</span></label>
+          <label><span>Fibonacci</span></label>
+        </div>
+        <span class="btn primary">Start a new game</span>
+      </div>
+    </div>`;
+}
+
+const AUSSCHNITTE = [
+  ['Startbildschirm', startbildschirm],
+  ['Tisch, Runde läuft — verdeckte Karten', () => tisch(false)],
+  ['Tisch, aufgedeckt — Karten und Auszählung', () => tisch(true)],
+];
+
+/* Diese Variablen werden als Farbprobe gezeigt; die Werteliste weiter unten
+   zeigt alle, auch Rundungen und Schatten. */
+const FARBEN = [
+  '--background', '--surface', '--surface-raised', '--border',
+  '--text', '--text-dim', '--accent', '--accent-text',
+  '--felt', '--felt-edge', '--card-face', '--card-back',
+];
+
+const ALLE = [
+  '--background', '--surface', '--surface-raised', '--border',
+  '--text', '--text-dim',
+  '--accent', '--accent-dim', '--accent-text',
+  '--good', '--bad',
+  '--felt', '--felt-edge',
+  '--card-face', '--card-face-text', '--card-face-border', '--card-back', '--card-back-alt',
+  '--radius-panel', '--radius-card', '--radius-control', '--radius-bar',
+  '--display-tracking', '--display-weight',
+  '--panel-border', '--shadow-panel', '--shadow-card', '--shadow-accent', '--shadow-dot',
+  '--table-surface', '--table-inner',
+  '--card-back-pattern', '--card-back-border',
+  '--bar-track', '--bar-fill', '--deck-veil',
+];
+
+/* Zwei Schalter in der Adresszeile, um eine Richtung ohne Ablenkung anzusehen:
+   ?only=dir-a zeigt nur diese eine Richtung, &bare lässt auch den Fließtext
+   weg und stellt nur die Bildschirm-Ausschnitte untereinander. */
+const parameter = new URLSearchParams(location.search);
+const nur = parameter.get('only');
+if (nur) {
+  for (const abschnitt of document.querySelectorAll('.variant')) {
+    if (abschnitt.dataset.variant !== nur) abschnitt.remove();
+  }
+  document.querySelector('.doc > h1').remove();
+  document.querySelector('.doc > .lede').remove();
+  document.querySelector('.doc > .note').remove();
+  document.querySelector('.doc > nav').remove();
+}
+if (parameter.has('bare')) {
+  for (const weg of document.querySelectorAll('.variant h2, .variant p, .variant dl.tradeoff, .swatches, details.tokens')) {
+    weg.remove();
+  }
+}
+
+for (const abschnitt of document.querySelectorAll('.variant[data-variant]')) {
+  const klasse = abschnitt.dataset.variant;
+
+  const rahmen = abschnitt.querySelector('[data-frames]');
+  rahmen.innerHTML = AUSSCHNITTE.map(
+    ([titel, bauen]) => `
+      <figure class="frame" style="margin:0">
+        <figcaption>${titel}</figcaption>
+        <div class="scroll">${bauen().replace('class="app', `class="app ${klasse}`)}</div>
+      </figure>`,
+  ).join('');
+
+  /* Farbproben und Werteliste aus den berechneten Werten des ersten
+     Ausschnitts lesen, damit Dokument und CSS nicht auseinanderlaufen können. */
+  const gemessen = rahmen.querySelector('.app');
+  const stil = getComputedStyle(gemessen);
+  const wert = (name) => stil.getPropertyValue(name).trim();
+
+  /* Beide Blöcke fehlen, wenn &bare gesetzt ist — dann gibt es nichts zu füllen. */
+  const proben = abschnitt.querySelector('[data-swatches]');
+  if (proben) {
+    proben.innerHTML = FARBEN.map(
+      (name) => `<li><span class="chip" style="background:${wert(name)}"></span><span class="token">${name}</span>${wert(name)}</li>`,
+    ).join('');
+  }
+
+  const werteliste = abschnitt.querySelector('[data-code]');
+  if (werteliste) {
+    const ueberschrift = abschnitt.querySelector('h2');
+    const titel = ueberschrift ? ueberschrift.textContent.replace(/\s+/g, ' ').trim() : klasse;
+    werteliste.textContent =
+      `/* ${titel} */\n:root {\n` +
+      ALLE.map((name) => `  ${name}: ${wert(name)};`).join('\n') +
+      `\n}`;
+  }
+}
+</script>
+</body>
+</html>
