@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { version } from '../../package.json';
   import { createGame } from '../lib/api';
   import { DECK_OPTIONS, type DeckName } from '../lib/decks';
   import { navigate, roomPath } from '../lib/router.svelte';
@@ -43,6 +44,8 @@
   {#if problem}
     <p class="problem" role="alert">{problem}</p>
   {/if}
+
+  <p class="version">Version {version}</p>
 </main>
 
 <style>
@@ -124,5 +127,11 @@
     margin: 1.25rem 0 0;
     color: var(--bad);
     font-size: 0.9rem;
+  }
+
+  .version {
+    margin: 2rem 0 0;
+    color: var(--text-dim);
+    font-size: 0.75rem;
   }
 </style>
