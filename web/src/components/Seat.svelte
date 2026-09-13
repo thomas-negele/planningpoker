@@ -98,13 +98,15 @@
   data-seat-id={participant.id}
   onfocusout={focusout}
 >
+  <!-- A visitor holds no card slot: where a card would be there is a plain label
+       instead, unless a card of theirs was revealed before they switched mode. -->
   <div class="card-slot">
-    {#if revealed}
-      {#if card}
-        <span class="card face-up">{card}</span>
-      {:else}
-        <span class="card empty" aria-label="did not vote">—</span>
-      {/if}
+    {#if revealed && card}
+      <span class="card face-up">{card}</span>
+    {:else if participant.visitor}
+      <span class="visitor-label">Visitor</span>
+    {:else if revealed}
+      <span class="card empty" aria-label="did not vote">—</span>
     {:else if participant.voted}
       <span class="card face-down" aria-label="has played a card"></span>
     {:else}
@@ -114,7 +116,11 @@
 
   <div class="who">
     {#if isYou && canRename}
-      <button class="name editable" onclick={onedit} title="Change your name and how it is stored">
+      <button
+        class="name editable"
+        onclick={onedit}
+        title="Change your name, visitor mode and how your name is stored"
+      >
         {participant.name}
         <svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" focusable="false">
           <path
@@ -130,8 +136,14 @@
       <span class="name">{participant.name}</span>
     {/if}
 
+    <!-- The card slot carries the label in every other case; a visitor whose card was
+         already revealed keeps both, so the tag moves beside the name. -->
+    {#if participant.visitor && revealed && card}
+      <span class="tag">visitor</span>
+    {/if}
+
     {#if participant.away}
-      <span class="away-tag">away</span>
+      <span class="tag">away</span>
     {/if}
   </div>
 
@@ -329,7 +341,22 @@
     opacity: 0.55;
   }
 
-  .away-tag {
+  /* The label that stands where a card would be. It keeps the seat's height so the
+     ring does not shift when somebody changes mode. */
+  .visitor-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 4.1rem;
+    padding: 0 0.3rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .tag {
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -369,6 +396,11 @@
       height: 2.5rem;
       border-radius: 5px;
       font-size: 0.8rem;
+    }
+
+    .visitor-label {
+      height: 2.5rem;
+      font-size: 0.7rem;
     }
 
     .who {

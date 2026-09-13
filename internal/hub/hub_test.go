@@ -116,7 +116,7 @@ func TestCommandChangesTheRoom(t *testing.T) {
 	}
 
 	conn := attach(t, room, "token-a")
-	if !room.Seat(conn, "Thomas") {
+	if !room.Seat(conn, "Thomas", false) {
 		t.Fatal("Seat was refused")
 	}
 
@@ -136,7 +136,7 @@ func TestSnapshotArrivesOnAttachBeforeAnythingElse(t *testing.T) {
 
 	// Somebody is already seated and has voted before the second browser connects.
 	first := attach(t, room, "token-a")
-	room.Seat(first, "Thomas")
+	room.Seat(first, "Thomas", false)
 	nextView(t, first)
 	room.Vote(first, game.CardM)
 	nextView(t, first)
@@ -170,7 +170,7 @@ func TestEveryChangeReachesEveryConnection(t *testing.T) {
 		drain(c)
 	}
 
-	room.Seat(conns[0], "Thomas")
+	room.Seat(conns[0], "Thomas", false)
 
 	for i, c := range conns {
 		view := nextView(t, c)
@@ -190,7 +190,7 @@ func TestAStuckConnectionDoesNotStallTheRoom(t *testing.T) {
 	drain(healthy)
 
 	// The stuck connection never reads. Push far more than its buffer holds.
-	room.Seat(healthy, "Thomas")
+	room.Seat(healthy, "Thomas", false)
 	nextView(t, healthy)
 	for i := range outboundBuffer * 3 {
 		card := game.TShirtDeck().Cards[i%len(game.TShirtDeck().Cards)]
@@ -355,7 +355,7 @@ func TestDeckChangesAreAuthorisedSerialisedAndBroadcast(t *testing.T) {
 		t.Errorf("unseated SetDeck error = %v, want ErrUnknownParticipant", err)
 	}
 
-	room.Seat(actor, "Thomas")
+	room.Seat(actor, "Thomas", false)
 	nextView(t, actor)
 	nextView(t, observer)
 	room.SetDeck(actor, game.FibonacciDeckName)
@@ -414,7 +414,7 @@ func TestVotesDoNotCrossBetweenRooms(t *testing.T) {
 	second, _ := manager.Create()
 
 	a := attach(t, first, "token-a")
-	first.Seat(a, "Thomas")
+	first.Seat(a, "Thomas", false)
 	nextView(t, a)
 	first.Vote(a, game.CardM)
 	nextView(t, a)
@@ -437,7 +437,7 @@ func TestAStoppedRoomRefusesCommandsRatherThanHanging(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		if room.Seat(conn, "Thomas") {
+		if room.Seat(conn, "Thomas", false) {
 			t.Error("a stopped room accepted a command")
 		}
 		if _, alive := room.Occupancy(); alive {

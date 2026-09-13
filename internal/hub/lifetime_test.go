@@ -62,7 +62,7 @@ func TestAReloadDoesNotDestroyTheRoom(t *testing.T) {
 	id := room.ID()
 
 	conn := attach(t, room, "token-a")
-	room.Seat(conn, "Thomas")
+	room.Seat(conn, "Thomas", false)
 	nextView(t, conn)
 	room.Vote(conn, game.CardL)
 	nextView(t, conn)
@@ -103,7 +103,7 @@ func TestAnOccupiedRoomIsNeverDiscarded(t *testing.T) {
 	room, _ := manager.Create()
 	id := room.ID()
 	conn := attach(t, room, "token-a")
-	room.Seat(conn, "Thomas")
+	room.Seat(conn, "Thomas", false)
 	nextView(t, conn)
 
 	// However long the game runs, somebody is connected throughout.
@@ -237,7 +237,7 @@ func TestSeatingIdentityAndConnections(t *testing.T) {
 
 	// A browser with an unknown token takes a new seat.
 	first := attach(t, room, "token-a")
-	room.Seat(first, "Thomas")
+	room.Seat(first, "Thomas", false)
 	view := nextView(t, first)
 	if len(view.Participants) != 1 {
 		t.Fatalf("participants = %d, want 1", len(view.Participants))
@@ -290,7 +290,7 @@ func TestATokenFromAnotherRoomStartsANewSeat(t *testing.T) {
 	second, _ := manager.Create()
 
 	a := attach(t, first, "token-shared")
-	first.Seat(a, "Thomas")
+	first.Seat(a, "Thomas", false)
 	nextView(t, a)
 
 	// The same token in a different room names nobody there, so it is a new arrival
@@ -299,7 +299,7 @@ func TestATokenFromAnotherRoomStartsANewSeat(t *testing.T) {
 	if len(view.Participants) != 0 {
 		t.Errorf("the second room already shows %d participants, want 0", len(view.Participants))
 	}
-	second.Seat(b, "Thomas")
+	second.Seat(b, "Thomas", false)
 	view = nextView(t, b)
 	if len(view.Participants) != 1 {
 		t.Fatalf("the second room shows %d participants after seating, want 1", len(view.Participants))
@@ -317,7 +317,7 @@ func TestAnUnseatedConnectionMayNotAct(t *testing.T) {
 		"vote":     func() bool { return room.Vote(conn, game.CardM) },
 		"reveal":   func() bool { return room.Reveal(conn) },
 		"newRound": func() bool { return room.NewRound(conn) },
-		"rename":   func() bool { return room.Rename(conn, "Mallory") },
+		"rename":   func() bool { return room.Rename(conn, "Mallory", nil) },
 	} {
 		if !act() {
 			t.Fatalf("%s: the room refused the command outright", name)
@@ -334,7 +334,7 @@ func TestARefusalIsPrivateAndChangesNothing(t *testing.T) {
 	room, _ := manager.Create()
 
 	actor := attach(t, room, "token-a")
-	room.Seat(actor, "Thomas")
+	room.Seat(actor, "Thomas", false)
 	nextView(t, actor)
 
 	observer, _ := attachView(t, room, "token-b")
@@ -408,7 +408,7 @@ func TestConcurrentActivityKeepsTheRoomConsistent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			room.Seat(conn, "player")
+			room.Seat(conn, "player", false)
 			for r := range rounds {
 				room.Vote(conn, deck[(i+r)%len(deck)])
 				if r%5 == 0 {
@@ -418,7 +418,7 @@ func TestConcurrentActivityKeepsTheRoomConsistent(t *testing.T) {
 					room.NewRound(conn)
 				}
 				if r%11 == 0 {
-					room.Rename(conn, "renamed")
+					room.Rename(conn, "renamed", nil)
 				}
 			}
 		}()
@@ -452,7 +452,7 @@ func TestEnsureRoomCreatesARoomAtTheGivenIdentifier(t *testing.T) {
 	original, _ := manager.Create()
 	id := original.ID()
 	conn := attach(t, original, "token-a")
-	original.Seat(conn, "Thomas")
+	original.Seat(conn, "Thomas", false)
 	nextView(t, conn)
 	original.Vote(conn, game.CardM)
 	nextView(t, conn)
@@ -497,7 +497,7 @@ func TestEnsureRoomReturnsARoomThatIsStillAlive(t *testing.T) {
 	original, _ := manager.Create()
 	id := original.ID()
 	conn := attach(t, original, "token-a")
-	original.Seat(conn, "Thomas")
+	original.Seat(conn, "Thomas", false)
 	nextView(t, conn)
 
 	reached, err := manager.EnsureRoom(id)
@@ -641,7 +641,7 @@ func TestALongSessionWithoutAnyGameActionNeverExpires(t *testing.T) {
 	id := room.ID()
 
 	conn := attach(t, room, "token-a")
-	room.Seat(conn, "Thomas")
+	room.Seat(conn, "Thomas", false)
 	nextView(t, conn)
 	drain(conn)
 
