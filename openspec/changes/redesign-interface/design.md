@@ -163,9 +163,16 @@ value in `app.css` moves — not the requirement.
   running application at both layouts, wide and narrow, before ticking the tasks; the mirror has
   already produced one such error, where the deck collapsed because a `<span>` cannot take a height.
 
-- **A bundled font is a permanent 29 KB on every first load.** → Accepted deliberately; it is
+- **A bundled font is a permanent 68 KB on every first load.** → Accepted deliberately; it is
   cached thereafter, it is smaller than most single images, and the alternative is an interface that
   looks different on every operating system.
+
+- **The upstream file covers every Latin script and Cyrillic, but not Greek, Hebrew, Arabic or
+  CJK.** A participant whose name is written in one of those still has it rendered by the system
+  font behind Geist. → Accepted. The fallback is graceful rather than broken: the operating system
+  has those glyphs, so the name is legible, merely set in a different typeface. Bundling coverage
+  for them would multiply the download for a case this application has no evidence of. If it ever
+  comes up, the fix is a second `@font-face` with a `unicode-range`, not a different typeface.
 
 - **`font-display: swap` reflows once when the font arrives.** → Accepted. The alternative hides
   text, and on the join screen that means a form nobody can read.
