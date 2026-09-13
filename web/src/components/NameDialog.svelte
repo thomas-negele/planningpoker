@@ -2,22 +2,28 @@
   import { untrack } from 'svelte';
 
   import { MAX_NAME_LENGTH, NAME_VISIBILITY_HINT, REMEMBERED_FOR } from '../lib/name';
+  import VisitorModeField from './VisitorModeField.svelte';
 
-  // Edit the name and storage preference without blocking room updates.
+  // Edit the name, the storage preference and visitor mode without blocking room
+  // updates.
 
   interface Props {
     name: string;
     remember: boolean;
-    onsave: (name: string, remember: boolean) => void;
+    visitor: boolean;
+    onsave: (name: string, remember: boolean, visitor: boolean) => void;
     onforget: () => void;
     oncancel: () => void;
   }
 
-  let { name, remember, onsave, onforget, oncancel }: Props = $props();
+  let { name, remember, visitor, onsave, onforget, oncancel }: Props = $props();
 
   // Initialize the draft once so incoming snapshots cannot overwrite unsaved edits.
   let draft = $state(untrack(() => name));
   let keep = $state(untrack(() => remember));
+
+  // The mode is a draft until Save, so cancelling leaves the seat as it is.
+  let asVisitor = $state(untrack(() => visitor));
 
   // Delete immediately, including when the dialog is later cancelled.
   function keepChanged(event: Event) {
@@ -30,7 +36,7 @@
     const trimmed = draft.trim();
     // The server validates submitted names.
     if (trimmed === '') return;
-    onsave(trimmed, keep);
+    onsave(trimmed, keep, asVisitor);
   }
 </script>
 
@@ -69,6 +75,8 @@
           </span>
         </label>
       </div>
+
+      <VisitorModeField bind:checked={asVisitor} idPrefix="dialog" />
 
       <div class="actions">
         <button type="button" class="secondary" onclick={oncancel}>Cancel</button>

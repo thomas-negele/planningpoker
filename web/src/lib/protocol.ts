@@ -29,6 +29,8 @@ export interface Participant {
   id: string;
   name: string;
   away: boolean;
+  /** Visitors hold a seat and every other action, but may not vote. */
+  visitor: boolean;
   voted: boolean;
 }
 
@@ -86,14 +88,18 @@ export interface ErrorMessage {
 
 export type ServerMessage = StateMessage | ErrorMessage | ThrownMessage;
 
-/** Everything a client may ask for. */
+/**
+ * Everything a client may ask for. On a seat the visitor choice applies to a new
+ * seat; on a rename it is sent only when the dialog was saved, and the server keeps
+ * the current mode when it is absent.
+ */
 export type ClientMessage =
-  | { type: 'seat'; name: string }
+  | { type: 'seat'; name: string; visitor: boolean }
   | { type: 'vote'; card: Card }
   | { type: 'reveal' }
   | { type: 'newRound' }
   | { type: 'setDeck'; deck: DeckName }
-  | { type: 'rename'; name: string }
+  | { type: 'rename'; name: string; visitor?: boolean }
   | { type: 'throw'; target: string; object: ThrowObject };
 
 /** Application close code for an invalid room ID; browsers can read it after upgrade. */
@@ -117,6 +123,8 @@ const REFUSALS: Record<string, string> = {
   unknown_deck: 'That deck is not available.',
   deck_locked: 'The deck cannot be changed while voting is in progress.',
   round_revealed: 'The round has been revealed. Start a new round to vote again.',
+  visitor_cannot_vote:
+    'You are at the table as a visitor, and visitors do not vote. Untick “Visitor mode” in your name dialog to vote again.',
   bad_message: 'The server did not understand that. Please reload the page.',
   invalid_room_id:
     'A room name needs at least 5 characters, and may contain only letters, digits, hyphens and underscores.',

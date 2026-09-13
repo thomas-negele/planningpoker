@@ -209,8 +209,11 @@ func (r *Room) Attach(c *Conn) AttachResult {
 // connection remains for that seat.
 func (r *Room) Detach(c *Conn) bool { return r.send(detachCommand{conn: c}) }
 
-// Seat restores a known credential's seat or creates a new one.
-func (r *Room) Seat(c *Conn, name string) bool { return r.send(seatCommand{conn: c, name: name}) }
+// Seat restores a known credential's seat or creates a new one in the chosen mode.
+// visitor applies to a new seat only; a restored seat keeps the mode it has.
+func (r *Room) Seat(c *Conn, name string, visitor bool) bool {
+	return r.send(seatCommand{conn: c, name: name, visitor: visitor})
+}
 
 // Vote plays a card.
 func (r *Room) Vote(c *Conn, card game.Card) bool { return r.send(voteCommand{conn: c, card: card}) }
@@ -226,8 +229,11 @@ func (r *Room) SetDeck(c *Conn, deckName string) bool {
 	return r.send(setDeckCommand{conn: c, deckName: deckName})
 }
 
-// Rename changes a participant's display name.
-func (r *Room) Rename(c *Conn, name string) bool { return r.send(renameCommand{conn: c, name: name}) }
+// Rename changes a participant's display name and, when visitor is not nil, their
+// visitor mode. Both take effect together.
+func (r *Room) Rename(c *Conn, name string, visitor *bool) bool {
+	return r.send(renameCommand{conn: c, name: name, visitor: visitor})
+}
 
 // Throw offers a cosmetic request without waiting behind game commands. A full
 // cosmetic inbox is a silent best-effort drop.
@@ -317,13 +323,15 @@ func (c detachCommand) apply(s *roomState) {
 }
 
 type seatCommand struct {
-	conn *Conn
-	name string
+	conn    *Conn
+	name    string
+	visitor bool
 }
 
 func (c seatCommand) apply(s *roomState) {
 	if pid, known := s.seats[c.conn.token]; known {
-		// Rejoining also updates the display name.
+		// Rejoining also updates the display name, but not the seat's visitor mode:
+		// the mode belongs to the seat and is changed from the name dialog.
 		if err := s.game.Rejoin(pid, c.name); err != nil {
 			s.refuse(c.conn, err)
 			return
@@ -333,7 +341,7 @@ func (c seatCommand) apply(s *roomState) {
 		return
 	}
 
-	pid, err := s.game.Join(s.random, c.name)
+	pid, err := s.game.Join(s.random, c.name, c.visitor)
 	if err != nil {
 		s.refuse(c.conn, err)
 		return
@@ -376,10 +384,14 @@ func (c setDeckCommand) apply(s *roomState) {
 type renameCommand struct {
 	conn *Conn
 	name string
+	// A nil visitor leaves the seat's mode as it is.
+	visitor *bool
 }
 
 func (c renameCommand) apply(s *roomState) {
-	s.act(c.conn, func(pid game.ParticipantID) error { return s.game.Rename(pid, c.name) })
+	s.act(c.conn, func(pid game.ParticipantID) error {
+		return s.game.Rename(pid, c.name, c.visitor)
+	})
 }
 
 type occupancyCommand struct{ reply chan occupancy }

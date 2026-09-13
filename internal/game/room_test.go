@@ -28,7 +28,7 @@ func newTestRoom(t *testing.T) *Room {
 // join seats somebody, failing the test if it does not work.
 func join(t *testing.T, room *Room, name string) ParticipantID {
 	t.Helper()
-	id, err := room.Join(rand.Reader, name)
+	id, err := room.Join(rand.Reader, name, false)
 	if err != nil {
 		t.Fatalf("Join(%q): %v", name, err)
 	}
@@ -95,7 +95,7 @@ func TestEmptyNameIsRefused(t *testing.T) {
 	room := newTestRoom(t)
 
 	for _, name := range []string{"", " ", "\t", "\n", "   \t  \n "} {
-		id, err := room.Join(rand.Reader, name)
+		id, err := room.Join(rand.Reader, name, false)
 		if !errors.Is(err, ErrEmptyName) {
 			t.Errorf("Join(%q) error = %v, want ErrEmptyName", name, err)
 		}
@@ -122,19 +122,19 @@ func TestExcessivelyLongNameIsRefused(t *testing.T) {
 	room := newTestRoom(t)
 
 	atLimit := strings.Repeat("a", MaxNameLength)
-	if _, err := room.Join(rand.Reader, atLimit); err != nil {
+	if _, err := room.Join(rand.Reader, atLimit, false); err != nil {
 		t.Errorf("a name of exactly the maximum length was refused: %v", err)
 	}
 
 	tooLong := strings.Repeat("a", MaxNameLength+1)
-	if _, err := room.Join(rand.Reader, tooLong); !errors.Is(err, ErrNameTooLong) {
+	if _, err := room.Join(rand.Reader, tooLong, false); !errors.Is(err, ErrNameTooLong) {
 		t.Errorf("Join(name of %d characters) error = %v, want ErrNameTooLong", len(tooLong), err)
 	}
 
 	// The limit is counted in runes, so a name in any script gets the same
 	// allowance rather than being cut short by its encoding.
 	multibyte := strings.Repeat("ü", MaxNameLength)
-	if _, err := room.Join(rand.Reader, multibyte); err != nil {
+	if _, err := room.Join(rand.Reader, multibyte, false); err != nil {
 		t.Errorf("a name of %d multi-byte runes was refused: %v", MaxNameLength, err)
 	}
 
@@ -159,11 +159,11 @@ func TestTheNameLimitIsFifteenCharacters(t *testing.T) {
 		t.Fatalf("the fixture %q is %d characters, want %d — fix the fixture, not the limit", fits, got, MaxNameLength)
 	}
 
-	if _, err := room.Join(rand.Reader, fits); err != nil {
+	if _, err := room.Join(rand.Reader, fits, false); err != nil {
 		t.Errorf("Join(%q) error = %v, want a seat: fifteen characters is the limit, not one past it", fits, err)
 	}
 
-	if _, err := room.Join(rand.Reader, tooLong); !errors.Is(err, ErrNameTooLong) {
+	if _, err := room.Join(rand.Reader, tooLong, false); !errors.Is(err, ErrNameTooLong) {
 		t.Errorf("Join(%q) error = %v, want ErrNameTooLong", tooLong, err)
 	}
 
@@ -188,7 +188,7 @@ func TestUnknownParticipantIsRefusedByEveryOperation(t *testing.T) {
 		"SetDeck":     func() error { return room.SetDeck(stranger, FibonacciDeckName) },
 		"Reveal":      func() error { return room.Reveal(stranger) },
 		"NewRound":    func() error { return room.NewRound(stranger) },
-		"Rename":      func() error { return room.Rename(stranger, "Mallory") },
+		"Rename":      func() error { return room.Rename(stranger, "Mallory", nil) },
 		"Rejoin":      func() error { return room.Rejoin(stranger, "Mallory") },
 		"MarkAway":    func() error { return room.MarkAway(stranger) },
 		"MarkPresent": func() error { return room.MarkPresent(stranger) },
@@ -373,7 +373,7 @@ func TestRenamingChangesOnlyTheName(t *testing.T) {
 		t.Fatalf("Vote: %v", err)
 	}
 
-	if err := room.Rename(id, "Thomas N."); err != nil {
+	if err := room.Rename(id, "Thomas N.", nil); err != nil {
 		t.Fatalf("Rename: %v", err)
 	}
 
@@ -393,10 +393,10 @@ func TestRenamingToAnInvalidNameIsRefused(t *testing.T) {
 	room := newTestRoom(t)
 	id := join(t, room, "Thomas")
 
-	if err := room.Rename(id, ""); !errors.Is(err, ErrEmptyName) {
+	if err := room.Rename(id, "", nil); !errors.Is(err, ErrEmptyName) {
 		t.Errorf("Rename to empty: error = %v, want ErrEmptyName", err)
 	}
-	if err := room.Rename(id, strings.Repeat("a", MaxNameLength+1)); !errors.Is(err, ErrNameTooLong) {
+	if err := room.Rename(id, strings.Repeat("a", MaxNameLength+1), nil); !errors.Is(err, ErrNameTooLong) {
 		t.Errorf("Rename to an over-long name: error = %v, want ErrNameTooLong", err)
 	}
 	if got := nameOf(t, room, id); got != "Thomas" {
@@ -414,7 +414,7 @@ func TestRenamingDuringARevealedRoundIsAllowed(t *testing.T) {
 		t.Fatalf("Reveal: %v", err)
 	}
 
-	if err := room.Rename(id, "Thomas N."); err != nil {
+	if err := room.Rename(id, "Thomas N.", nil); err != nil {
 		t.Fatalf("Rename during a revealed round: %v", err)
 	}
 
@@ -473,7 +473,7 @@ func TestAFullTableRefusesANewSeat(t *testing.T) {
 	join(t, room, "Thomas")
 	join(t, room, "Anna")
 
-	_, err := room.Join(rand.Reader, "Late")
+	_, err := room.Join(rand.Reader, "Late", false)
 	if !errors.Is(err, ErrRoomFull) {
 		t.Fatalf("joining a full table returned %v, want ErrRoomFull", err)
 	}
@@ -495,7 +495,7 @@ func TestAnAwayParticipantStillOccupiesTheirSeat(t *testing.T) {
 		t.Fatalf("MarkAway: %v", err)
 	}
 
-	if _, err := room.Join(rand.Reader, "Opportunist"); !errors.Is(err, ErrRoomFull) {
+	if _, err := room.Join(rand.Reader, "Opportunist", false); !errors.Is(err, ErrRoomFull) {
 		t.Errorf("joining while the only seat was held by an away participant returned %v, "+
 			"want ErrRoomFull", err)
 	}
@@ -527,7 +527,7 @@ func TestARefusedSeatLeavesTheRoomExactlyAsItWas(t *testing.T) {
 	}
 
 	before := room.View()
-	if _, err := room.Join(rand.Reader, "Late"); !errors.Is(err, ErrRoomFull) {
+	if _, err := room.Join(rand.Reader, "Late", false); !errors.Is(err, ErrRoomFull) {
 		t.Fatalf("Join returned %v, want ErrRoomFull", err)
 	}
 	after := room.View()

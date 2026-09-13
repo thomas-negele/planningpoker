@@ -22,6 +22,9 @@ var (
 	// ErrDeckLocked rejects deck changes after a hidden round has received a vote.
 	ErrDeckLocked = errors.New("the deck cannot change while voting is in progress")
 
+	// ErrVisitorCannotVote rejects a vote from a seat in visitor mode.
+	ErrVisitorCannotVote = errors.New("a visitor cannot vote in this round")
+
 	// ErrRoundRevealed rejects voting after reveal.
 	ErrRoundRevealed = errors.New("the round has been revealed and its votes are final")
 

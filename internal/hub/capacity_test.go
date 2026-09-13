@@ -123,7 +123,7 @@ func TestTheConnectionCeilingRefusesWithoutDisturbingAnybody(t *testing.T) {
 	second := attach(t, room, "token-two")
 
 	// Somebody at the table is mid-game, so a refusal has something to disturb.
-	room.Seat(seated, "Thomas")
+	room.Seat(seated, "Thomas", false)
 	nextView(t, seated)
 	nextView(t, second)
 	drain(seated)

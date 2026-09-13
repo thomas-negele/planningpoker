@@ -23,6 +23,8 @@ type participant struct {
 	name string
 	// Away participants retain their seat and vote.
 	away bool
+	// Visitors hold a seat and every other action, but may not vote.
+	visitor bool
 }
 
 // round holds the current votes and reveal state.
@@ -128,9 +130,10 @@ func (r *Room) SetDeck(id ParticipantID, deckName string) error {
 	return nil
 }
 
-// Join validates a name and allocates a seat. Duplicate display names are allowed.
-// Randomness is read before mutating the room so failures leave it unchanged.
-func (r *Room) Join(random io.Reader, name string) (ParticipantID, error) {
+// Join validates a name and allocates a seat in the chosen mode. Duplicate display
+// names are allowed. Randomness is read before mutating the room so failures leave
+// it unchanged.
+func (r *Room) Join(random io.Reader, name string, visitor bool) (ParticipantID, error) {
 	clean, err := normalizeName(name)
 	if err != nil {
 		return "", err
@@ -146,11 +149,17 @@ func (r *Room) Join(random io.Reader, name string) (ParticipantID, error) {
 		return "", err
 	}
 
-	r.participants = append(r.participants, &participant{id: ParticipantID(id), name: clean})
+	r.participants = append(r.participants, &participant{
+		id:      ParticipantID(id),
+		name:    clean,
+		visitor: visitor,
+	})
 	return ParticipantID(id), nil
 }
 
-// Rejoin updates the name and marks an existing seat present, preserving its vote.
+// Rejoin updates the name and marks an existing seat present, preserving its vote
+// and its visitor mode. Returning to a seat never changes the mode it already has;
+// only Rename does that.
 func (r *Room) Rejoin(id ParticipantID, name string) error {
 	p, err := r.find(id)
 	if err != nil {
@@ -167,8 +176,16 @@ func (r *Room) Rejoin(id ParticipantID, name string) error {
 	return nil
 }
 
-// Rename changes the display name without changing the seat or vote.
-func (r *Room) Rename(id ParticipantID, name string) error {
+// Rename changes the display name and, when visitor is not nil, the seat's visitor
+// mode. Both are applied together or not at all: an invalid name leaves the mode
+// alone as well. A nil visitor preserves the mode the seat already has, so a client
+// that does not know about visitor mode cannot switch it off by renaming.
+//
+// Entering visitor mode during a hidden round deletes that seat's vote for good.
+// Leaving visitor mode does not bring it back; the participant may play a new card
+// while the round is still hidden. After a reveal nothing is deleted, because the
+// revealed cards and their tally are final until a new round.
+func (r *Room) Rename(id ParticipantID, name string, visitor *bool) error {
 	p, err := r.find(id)
 	if err != nil {
 		return err
@@ -180,6 +197,12 @@ func (r *Room) Rename(id ParticipantID, name string) error {
 	}
 
 	p.name = clean
+	if visitor != nil {
+		if *visitor && !r.round.revealed {
+			delete(r.round.votes, p.id)
+		}
+		p.visitor = *visitor
+	}
 	return nil
 }
 
@@ -215,9 +238,14 @@ func (r *Room) AnyonePresent() bool {
 }
 
 // Vote accepts a deck card from a seated participant while the round is hidden.
+// Visitors are refused, whatever client they use.
 func (r *Room) Vote(id ParticipantID, card Card) error {
-	if _, err := r.find(id); err != nil {
+	p, err := r.find(id)
+	if err != nil {
 		return err
+	}
+	if p.visitor {
+		return ErrVisitorCannotVote
 	}
 	if r.round.revealed {
 		return ErrRoundRevealed
@@ -256,11 +284,13 @@ func (r *Room) NewRound(id ParticipantID) error {
 // Revealed reports whether the current round has been revealed.
 func (r *Room) Revealed() bool { return r.round.revealed }
 
-// EveryonePresentHasVoted excludes away participants and is false if none are present.
+// EveryonePresentHasVoted excludes away participants and visitors, and is false if
+// nobody present can vote at all — an empty table and a table of visitors are not
+// rounds whose votes are all in.
 func (r *Room) EveryonePresentHasVoted() bool {
 	present := 0
 	for _, p := range r.participants {
-		if p.away {
+		if p.away || p.visitor {
 			continue
 		}
 		present++

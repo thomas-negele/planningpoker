@@ -387,14 +387,17 @@ func TestEveryRefusalReturnsARecognisableError(t *testing.T) {
 	}
 
 	refusals := map[string]func() error{
-		"vote by a stranger":     func() error { return room.Vote("nobody", CardM) },
-		"empty name on join":     func() error { _, err := room.Join(fixedRandom(1), " "); return err },
-		"over-long name on join": func() error { _, err := room.Join(fixedRandom(1), strings.Repeat("a", MaxNameLength+1)); return err },
-		"card outside the deck":  func() error { return room.Vote(id, "XXL") },
-		"unknown deck":           func() error { return room.SetDeck(id, "custom") },
-		"broken randomness":      func() error { _, err := room.Join(failingRandom{}, "bert"); return err },
-		"empty name on rename":   func() error { return room.Rename(id, "") },
-		"rejoin by a stranger":   func() error { return room.Rejoin("nobody", "mallory") },
+		"vote by a stranger": func() error { return room.Vote("nobody", CardM) },
+		"empty name on join": func() error { _, err := room.Join(fixedRandom(1), " ", false); return err },
+		"over-long name on join": func() error {
+			_, err := room.Join(fixedRandom(1), strings.Repeat("a", MaxNameLength+1), false)
+			return err
+		},
+		"card outside the deck": func() error { return room.Vote(id, "XXL") },
+		"unknown deck":          func() error { return room.SetDeck(id, "custom") },
+		"broken randomness":     func() error { _, err := room.Join(failingRandom{}, "bert", false); return err },
+		"empty name on rename":  func() error { return room.Rename(id, "", nil) },
+		"rejoin by a stranger":  func() error { return room.Rejoin("nobody", "mallory") },
 	}
 
 	if err := room.Vote(id, CardM); err != nil {

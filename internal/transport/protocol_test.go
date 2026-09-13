@@ -91,6 +91,7 @@ var gameSentinels = []error{
 	game.ErrCardNotInDeck,
 	game.ErrUnknownDeck,
 	game.ErrDeckLocked,
+	game.ErrVisitorCannotVote,
 	game.ErrRoundRevealed,
 	game.ErrInvalidRoomID,
 	game.ErrShortRandomRead,

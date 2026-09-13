@@ -242,7 +242,7 @@ Names in that list SHALL be shown in full, under the same rule as at the table.
 ### Requirement: The table shows everyone and what they have done
 
 The table SHALL show every participant, each with their name. For each participant it SHALL show
-whether they have played a card and whether they are away, and it SHALL be apparent which one is you.
+whether they have played a card, whether they are a visitor, and whether they are away, and it SHALL be apparent which one is you.
 
 A name of any length the rules permit SHALL be displayed in full, at every screen width. It MUST NOT
 be clipped, shortened, replaced by an ellipsis or otherwise altered to fit the space available.
@@ -254,8 +254,8 @@ The same rule applies to the field in which a participant edits their own name: 
 of the full permitted length visibly, so that nobody edits a name they cannot entirely see.
 
 On a wide screen the participants SHALL be arranged around the table. Each one SHALL sit clear of
-the table's edge, measured from the middle of the whole seat — the card and the name together —
-rather than from the card alone, so that nobody's card ends up lying on the table. This clearance
+the table's edge, measured from the middle of the whole seat — the card or visitor marker and the name together —
+rather than from the card alone, so that no card or visitor marker ends up lying on the table. This clearance
 SHALL be derived from the seat's actual extent, which includes whatever width a full-length name
 requires, so that a wider seat does not reintroduce the overlap.
 
@@ -264,11 +264,10 @@ collides with itself at that width, and a row of full-size cards costs more vert
 phone has to give before the table has even begun. The table itself carries the result and the
 action, so it comes first and the list of who is present follows it.
 
-The card SHALL remain a card in both arrangements: face down for somebody who has played, face up
-once revealed, and visibly empty for somebody who has not played.
+For a non-visitor, the card SHALL remain a card in both arrangements: face down for somebody who has played, face up once revealed, and visibly empty for somebody who has not played. A visitor who holds no revealed card for the current round SHALL instead have a compact text label "Visitor" in place of the card slot. If a card was revealed before that person switched to visitor mode, that revealed card SHALL remain visible for this round alongside the visitor label.
 
-While the round is hidden, a participant who has voted SHALL be shown as holding a face-down card,
-and one who has not SHALL be shown as holding nothing. The value MUST NOT be shown, or discoverable,
+While the round is hidden, a non-visitor who has voted SHALL be shown as holding a face-down card,
+and one who has not SHALL be shown as holding nothing. A visitor SHALL show no card symbol. The value MUST NOT be shown, or discoverable,
 for anybody — including yourself, since anything the page knows is in reach of everyone at the table.
 
 The table SHALL remain readable as people arrive and leave, and on a narrow screen.
@@ -310,11 +309,21 @@ The table SHALL remain readable as people arrive and leave, and on a narrow scre
 
 - **WHEN** the table is shown on a screen too narrow for a ring
 - **THEN** the participants appear as a list below the table, one per row, each still showing their
-  card and whether they are away
+  card or visitor marker and whether they are away
+
+#### Scenario: A visitor keeps a seat without a card symbol
+
+- **WHEN** a visitor has no revealed card for the current round on a wide or narrow screen
+- **THEN** their name and a "Visitor" text label remain visible, with no card symbol
+
+#### Scenario: A revealed card remains after a mode change
+
+- **WHEN** a participant with a revealed card switches to visitor mode
+- **THEN** their revealed card and visitor label both remain visible for that round
 
 ### Requirement: The deck is always to hand
 
-The cards the room's deck offers SHALL be shown along the bottom edge of the screen,
+For a non-visitor, the cards the room's deck offers SHALL be shown along the bottom edge of the screen,
 in the deck's own order, and SHALL stay reachable without scrolling the table away.
 
 The deck SHALL be built from what the server sends rather than from a list written
@@ -338,11 +347,11 @@ nothing.
 A dropped and re-established connection is **not** that case: the page is still the
 one that cast the vote and has not forgotten it, so the card stays shown throughout.
 
-Cards SHALL be operable by keyboard as well as by pointer.
+Cards SHALL be operable by keyboard as well as by pointer. For a visitor, the voting deck SHALL not be shown as an available action; its place SHALL carry a short "Visitor mode" label, so that the space the deck occupies does not simply fall empty.
 
 #### Scenario: The deck comes from the server
 
-- **WHEN** the table is shown
+- **WHEN** the table is shown to a non-visitor
 - **THEN** the cards offered are exactly those the server named, in the order it gave
   them
 
@@ -375,6 +384,20 @@ Cards SHALL be operable by keyboard as well as by pointer.
 
 - **WHEN** a participant navigates with the keyboard alone
 - **THEN** every card can be reached and played
+
+#### Scenario: Visitor has no voting deck
+
+- **WHEN** a visitor views the table during a hidden round
+- **THEN** the voting cards are not offered to them, and a short "Visitor mode" label stands where the deck would be
+
+### Requirement: The table identifies a round without present voters
+
+When no present participant is eligible to vote, the round status SHALL say "No voters this round" instead of waiting for votes. Reveal and New round SHALL remain available under their usual rules.
+
+#### Scenario: Only visitors are present
+
+- **WHEN** every present participant is a visitor and the round is hidden
+- **THEN** the status says "No voters this round" and Reveal remains available
 
 ### Requirement: Revealing and starting a new round are available to everyone
 

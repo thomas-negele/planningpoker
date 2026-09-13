@@ -570,7 +570,7 @@ func readIntents(ctx context.Context, conn *websocket.Conn, room *hub.Room, hubC
 func dispatch(room *hub.Room, hubConn *hub.Conn, msg clientMessage) bool {
 	switch msg.Type {
 	case intentSeat:
-		return room.Seat(hubConn, msg.Name)
+		return room.Seat(hubConn, msg.Name, msg.visitorRequested())
 	case intentVote:
 		return room.Vote(hubConn, game.Card(msg.Card))
 	case intentReveal:
@@ -580,7 +580,8 @@ func dispatch(room *hub.Room, hubConn *hub.Conn, msg clientMessage) bool {
 	case intentSetDeck:
 		return room.SetDeck(hubConn, msg.Deck)
 	case intentRename:
-		return room.Rename(hubConn, msg.Name)
+		// The pointer travels on: an omitted field preserves the current mode.
+		return room.Rename(hubConn, msg.Name, msg.Visitor)
 	case intentThrow:
 		// Throw is best effort. A full cosmetic room inbox is an intentional
 		// silent drop and must not end the socket reader.
