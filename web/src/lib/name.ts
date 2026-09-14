@@ -11,8 +11,12 @@ export const MAX_NAME_LENGTH = 15;
 // Remember an opted-in name for one year; the form displays this duration.
 const MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
 
-/** Duration label shown next to the storage choice. */
-export const REMEMBERED_FOR = 'a year';
+/**
+ * Duration label, now only used to build the storage choice's own wording below.
+ * It stopped being exported when the two forms stopped assembling that sentence
+ * themselves: one place says it, and both forms read it from there.
+ */
+const REMEMBERED_FOR = 'a year';
 
 /** Shared advisory text for joining and renaming; it adds no name-validation rule. */
 export const NAME_VISIBILITY_HINT =
