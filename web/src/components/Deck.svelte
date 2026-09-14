@@ -37,7 +37,7 @@
     position: sticky;
     bottom: 0;
     padding: 1rem 1rem 1.25rem;
-    background: linear-gradient(to top, var(--background) 65%, transparent);
+    background: var(--deck-veil);
   }
 
   ul {
@@ -53,7 +53,7 @@
   .card {
     width: 3.4rem;
     height: 4.8rem;
-    border-radius: 9px;
+    border-radius: var(--radius-card);
     border: 1px solid var(--border);
     background: var(--surface-raised);
     color: var(--text);
@@ -61,6 +61,7 @@
     font-size: 1.2rem;
     font-weight: 600;
     cursor: pointer;
+    box-shadow: var(--shadow-card);
     transition:
       transform 120ms ease,
       border-color 120ms ease;

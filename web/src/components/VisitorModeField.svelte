@@ -2,6 +2,15 @@
   // The visitor-mode choice, used both when taking a seat and when editing one's own
   // name. Visitor mode belongs to the seat, not to the remembered-name preference,
   // so it is never stored in a cookie.
+  //
+  // The explanation uses the same InfoControl as the other choices on these two
+  // forms. It had its own once, which meant two differently drawn "i" symbols
+  // three rows apart on the join screen, and that one kept its note at
+  // visibility:hidden while closed — which takes it out of the accessibility
+  // tree, so the aria-describedby below resolved to nothing until the button was
+  // pressed. Sharing the control settles both.
+
+  import InfoControl from './InfoControl.svelte';
 
   interface Props {
     /** The current choice. Bound, so the parent decides when to send it. */
@@ -14,10 +23,6 @@
 
   const checkboxId = $derived(`${idPrefix}-visitor`);
   const hintId = $derived(`${idPrefix}-visitor-hint`);
-
-  // The explanation opens on click and also appears while the control is hovered or
-  // focused, so a keyboard user reads it without having to activate anything.
-  let explaining = $state(false);
 </script>
 
 <div class="visitor">
@@ -25,23 +30,7 @@
   <div class="text">
     <label for={checkboxId}>Visitor mode</label>
 
-    <!-- The explanation is positioned out of the flow on purpose. A hint that took up
-         space would shrink the form again the moment the pointer left the control,
-         moving the checkbox out from under the click that was on its way to it. -->
-    <span class="info-anchor">
-      <button
-        type="button"
-        class="info"
-        aria-label="What visitor mode means"
-        aria-describedby={hintId}
-        aria-expanded={explaining}
-        aria-controls={hintId}
-        onclick={() => (explaining = !explaining)}
-      >
-        i
-      </button>
-      <span id={hintId} class="detail" role="note">Visitors cannot vote.</span>
-    </span>
+    <InfoControl id={hintId} label="What visitor mode means" text="Visitors cannot vote." />
   </div>
 </div>
 
@@ -75,59 +64,4 @@
     cursor: pointer;
   }
 
-  .info-anchor {
-    position: relative;
-    display: inline-flex;
-  }
-
-  .info {
-    display: inline-grid;
-    place-items: center;
-    width: 1.1rem;
-    height: 1.1rem;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: none;
-    color: var(--text-dim);
-    font-size: 0.7rem;
-    font-style: italic;
-    font-weight: 600;
-    line-height: 1;
-    cursor: pointer;
-  }
-
-  .info:hover,
-  .info:focus-visible {
-    color: var(--text);
-    border-color: var(--accent-dim);
-  }
-
-  /* Kept in the document for assistive technology, which reaches it through
-     aria-describedby, and shown on hover, focus or activation. */
-  .detail {
-    position: absolute;
-    top: calc(100% + 0.4rem);
-    left: -0.5rem;
-    z-index: 5;
-    width: max-content;
-    max-width: 14rem;
-    padding: 0.4rem 0.55rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface-raised);
-    color: var(--text);
-    font-size: 0.75rem;
-    line-height: 1.4;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 100ms ease, visibility 100ms;
-  }
-
-  .info:hover ~ .detail,
-  .info:focus-visible ~ .detail,
-  .info[aria-expanded='true'] ~ .detail {
-    opacity: 1;
-    visibility: visible;
-  }
 </style>

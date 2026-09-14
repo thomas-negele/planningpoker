@@ -31,6 +31,11 @@ func NewRouter(opts Options) http.Handler {
 
 	mux.Handle("POST /api/games", opts.CreateGame)
 
+	// Unlike the handlers above, this one depends on nothing — no manager, no
+	// operator files, no configuration — so there is nothing to inject and no
+	// field for a caller to forget.
+	mux.Handle("GET /api/decks", http.HandlerFunc(Decks))
+
 	mux.Handle("GET /api/legal", opts.LegalStatus)
 
 	// Both patterns, so that /legal answers for itself rather than being redirected

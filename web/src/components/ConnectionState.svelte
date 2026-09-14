@@ -38,6 +38,7 @@
     height: 0.5rem;
     border-radius: 50%;
     background: var(--text-dim);
+    box-shadow: var(--shadow-dot);
     flex: none;
   }
 

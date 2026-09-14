@@ -83,7 +83,9 @@
 
   .dialog {
     width: min(25rem, 100%);
-    border-radius: 16px;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow-panel);
     background: var(--surface);
     padding: 1.5rem;
   }
@@ -133,7 +135,7 @@
     gap: 0.25rem;
     padding: 0.75rem 0.85rem;
     border: 1px solid var(--border);
-    border-radius: 9px;
+    border-radius: var(--radius-card);
     color: var(--text-dim);
   }
 

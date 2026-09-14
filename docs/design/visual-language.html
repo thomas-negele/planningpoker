@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning Poker — Visual Language</title>
+<style>
+/* ==========================================================================
+   Visual language template for Planning Poker
+   --------------------------------------------------------------------------
+   WHAT THIS FILE IS
+   A design document, not part of the application. It lives under docs/ and is
+   therefore neither bundled by Vite nor served by the Go process; no visitor
+   of the application ever sees it. To look at it, run
+   `open docs/design/visual-language.html` from the project directory.
+
+   WHAT IS AUTHORITATIVE HERE — AND WHAT IS NOT
+   Authoritative for the running application are the custom properties in
+   web/src/app.css and the components under web/src/components/ — nothing else.
+   This file shows what follows from one particular set of values. Where it
+   disagrees with the code, the code is right and this file is out of date.
+
+   HOW IT IS BUILT
+   Below there is ONE set of component CSS (from the "COMPONENTS" heading
+   onwards) that works exclusively through var(--…) and mirrors the structure
+   and class names of the real Svelte components. Each direction then sets
+   nothing but a block of values. The difference between the directions is
+   therefore — apart from explicitly marked exceptions — a difference in
+   values, not in code. That is not cosmetics of this document: it is the
+   claim that implementing a direction is largely a value swap in app.css.
+
+   TYPEFACE
+   The specimens below deliberately run on the system font stack (system-ui
+   and its fallbacks), because that is what the application rendered when they
+   were made. A bundled typeface is a decision of its own with costs of its
+   own — a .woff2 file in the repository, because the "nothing from foreign
+   servers" rule rules out Google Fonts. That decision has since been taken;
+   see the note at the top of the page.
+   ========================================================================== */
+
+/* --- Document chrome (not part of the application) ------------------------ */
+
+:root {
+  --doc-bg: #0f1115;
+  --doc-panel: #171a20;
+  --doc-border: #272c35;
+  --doc-text: #e8ebf0;
+  --doc-dim: #99a1ae;
+  --doc-accent: #7aa2ff;
+  --doc-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --doc-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--doc-bg);
+  color: var(--doc-text);
+  font-family: var(--doc-font);
+  line-height: 1.55;
+}
+
+.doc {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+.doc h1 {
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+
+.doc > .lede {
+  color: var(--doc-dim);
+  max-width: 46rem;
+  margin: 0 0 1.5rem;
+}
+
+.doc h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.15rem;
+}
+
+.doc h2 .kicker {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--doc-dim);
+  margin-bottom: 0.3rem;
+}
+
+.doc h3 {
+  font-size: 0.95rem;
+  margin: 1.75rem 0 0.5rem;
+  color: var(--doc-text);
+}
+
+.doc p { max-width: 46rem; }
+
+.doc .note {
+  border-left: 2px solid var(--doc-border);
+  padding-left: 1rem;
+  color: var(--doc-dim);
+  font-size: 0.92rem;
+}
+
+.doc dl.tradeoff {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  max-width: 46rem;
+  margin: 1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.doc dl.tradeoff dt {
+  font-weight: 600;
+  color: var(--doc-dim);
+  white-space: nowrap;
+}
+
+.doc dl.tradeoff dd { margin: 0; }
+
+.doc section.variant {
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--doc-border);
+}
+
+.doc nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.doc nav a {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--doc-border);
+  border-radius: 999px;
+  color: var(--doc-text);
+  text-decoration: none;
+  background: var(--doc-panel);
+}
+
+.doc nav a:hover { border-color: var(--doc-accent); }
+
+/* Swatches and value lists, both generated at runtime from the real properties. */
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatches li {
+  width: 7.6rem;
+  font-size: 0.68rem;
+  font-family: var(--doc-mono);
+  color: var(--doc-dim);
+  line-height: 1.35;
+}
+
+.swatches .chip {
+  display: block;
+  height: 2.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--doc-border);
+  margin-bottom: 0.3rem;
+}
+
+.swatches .token { color: var(--doc-text); display: block; word-break: break-all; }
+
+details.tokens { margin: 1.25rem 0 0; }
+
+details.tokens summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--doc-dim);
+}
+
+details.tokens pre {
+  margin: 0.75rem 0 0;
+  padding: 1rem;
+  background: #0b0d11;
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--doc-mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: #cfd6e2;
+}
+
+/* One screen excerpt. Fixed size so that every direction is shown at the same
+   scale; on a narrow window it scrolls sideways rather than reflowing, because
+   reflowing would show the application's narrow-screen state instead of the
+   one being discussed. */
+
+.frames {
+  margin: 1.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.frame {
+  border: 1px solid var(--doc-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--doc-panel);
+}
+
+.frame > figcaption {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--doc-dim);
+  border-bottom: 1px solid var(--doc-border);
+}
+
+.frame > .scroll { overflow-x: auto; }
+
+/* ==========================================================================
+   COMPONENTS
+   From here on the application is mirrored. Structure, class names and
+   measurements follow the real components; every colour, every radius and
+   every shadow comes from a custom property that a direction sets below.
+   ========================================================================== */
+
+.app {
+  font-family: var(--font-stack);
+  background: var(--background);
+  color: var(--text);
+  /* Fill the excerpt, but never fall below the width at which the real
+     application switches to the list layout (58rem). */
+  width: 100%;
+  min-width: 60rem;
+  /* Tall enough for the ring of seats to fit beside the table: the 20.25rem
+     arena plus 7rem of padding above and 5rem below, plus header and deck.
+     Too little height squeezes the table area and pushes the lower seats into
+     the deck — which would be a fault of this document, not of the
+     application. Slightly above the arithmetic minimum, so the table area has
+     room to breathe as it does in a real window and the lower seats do not
+     stick to the deck. */
+  min-height: 48rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.app.centered { align-items: center; justify-content: center; padding: 2.5rem; min-height: 30rem; }
+
+/* --- Entry screen (EntryScreen.svelte) --- */
+
+.entry-card {
+  background: var(--surface);
+  padding: 3rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-panel);
+  text-align: center;
+  max-width: 30rem;
+}
+
+.entry-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  letter-spacing: var(--display-tracking);
+  font-weight: var(--display-weight);
+}
+
+.entry-card .sub { margin: 0 0 2rem; color: var(--text-dim); line-height: 1.5; }
+
+.entry-card .legend {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin: 0 0 0.55rem;
+}
+
+.deck-options { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+
+.deck-options span {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.deck-options .chosen span {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
+/* --- Buttons (app.css) --- */
+
+.btn {
+  font: inherit;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  padding: 0.55rem 1.1rem;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-accent);
+}
+
+.btn.ghost { background: none; color: var(--text-dim); }
+
+.btn.disabled { opacity: 0.45; }
+
+/* --- Room header (RoomView.svelte) --- */
+
+.room-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0;
+}
+
+.room-header .right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.room-header .middle { display: flex; justify-content: center; }
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.conn .dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--good);
+  box-shadow: var(--shadow-dot);
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-dim);
+}
+
+/* --- Table and seats (RoomView.svelte, Seat.svelte) --- */
+
+.table-area { flex: 1; display: grid; place-items: center; padding: 7rem 7.5rem 5rem; }
+
+.arena { position: relative; width: 36rem; aspect-ratio: 16 / 9; }
+
+.table {
+  position: absolute;
+  inset: 0;
+  background: var(--table-surface);
+  border: 1px solid var(--felt-edge);
+  border-radius: 48% / 34%;
+  box-shadow: var(--table-inner);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1.45rem 3rem;
+  text-align: center;
+}
+
+.table .action { height: 2.4rem; display: flex; align-items: center; }
+.table .action.spent { visibility: hidden; }
+
+.table .info {
+  min-height: 11.5rem;
+  width: 100%;
+  max-width: 19rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.table .status { margin: 0; color: var(--text-dim); font-size: 0.85rem; }
+
+.seats { margin: 0; padding: 0; list-style: none; }
+
+.seats > .seat {
+  position: absolute;
+  left: calc(50% + var(--edge-x) * 50% + var(--push-x) * var(--push));
+  top: calc(50% + var(--edge-y) * 50% + var(--push-y) * var(--push));
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+/* The five seat positions are computed with the formula from
+   RoomView.svelte:52 for five participants: a point on the 16:9 ellipse,
+   displaced outwards along its normal by half the seat's own extent plus the
+   gap to the table. */
+.seats > .seat:nth-child(1) { --edge-x: 0;      --edge-y: -1;     --push-x: 0;      --push-y: -1;    --push: 4.05rem; }
+.seats > .seat:nth-child(2) { --edge-x: 0.951;  --edge-y: -0.309; --push-x: 0.866;  --push-y: -0.5;  --push: 7.68rem; }
+.seats > .seat:nth-child(3) { --edge-x: 0.588;  --edge-y: 0.809;  --push-x: 0.378;  --push-y: 0.926; --push: 6.06rem; }
+.seats > .seat:nth-child(4) { --edge-x: -0.588; --edge-y: 0.809;  --push-x: -0.378; --push-y: 0.926; --push: 6.06rem; }
+.seats > .seat:nth-child(5) { --edge-x: -0.951; --edge-y: -0.309; --push-x: -0.866; --push-y: -0.5;  --push: 7.68rem; }
+
+.card-slot { height: 4.2rem; display: flex; align-items: flex-end; }
+
+.seat .card {
+  width: 2.9rem;
+  height: 4.1rem;
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.seat .card.face-down {
+  background: var(--card-back-pattern);
+  border-color: var(--card-back-border);
+  box-shadow: var(--shadow-card);
+}
+
+.seat .card.face-up {
+  background: var(--card-face);
+  color: var(--card-face-text);
+  border-color: var(--card-face-border);
+  box-shadow: var(--shadow-card);
+}
+
+.seat .card.empty {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-dim);
+  font-weight: 400;
+  box-shadow: none;
+}
+
+.who { display: flex; align-items: center; gap: 0.35rem; }
+.who .name { font-size: 0.9rem; white-space: nowrap; }
+.seat.you .name { color: var(--accent); font-weight: 600; }
+.seat.away { opacity: 0.55; }
+
+.away-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.35rem;
+}
+
+/* --- Tally (Results.svelte) --- */
+
+.results { display: flex; flex-direction: column; gap: 0.45rem; width: 100%; }
+
+.results .chart { margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+
+.results .chart.asides {
+  flex-direction: row;
+  justify-content: center;
+  gap: 1.1rem;
+  border-top: 1px solid var(--felt-edge);
+  padding-top: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.results .chart.asides .row { flex: 1; max-width: 9rem; }
+
+.results .row { display: flex; align-items: center; gap: 0.45rem; }
+
+.results dt {
+  flex: none;
+  width: 1.9rem;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.results dd { margin: 0; flex: 1; display: flex; align-items: center; gap: 0.4rem; }
+
+.results .track {
+  flex: 1;
+  height: 0.75rem;
+  border-radius: var(--radius-bar);
+  background: var(--bar-track);
+  overflow: hidden;
+}
+
+.results .bar { display: block; height: 100%; border-radius: var(--radius-bar); background: var(--bar-fill); }
+
+.results .count {
+  flex: none;
+  width: 0.9rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.results .row.none dt, .results .row.none .count { color: var(--text-dim); opacity: 0.6; }
+
+.results .summary { margin: 0.1rem 0 0; text-align: center; font-size: 0.78rem; color: var(--text-dim); }
+
+/* --- The deck along the bottom edge (Deck.svelte) --- */
+
+.deck {
+  padding: 1rem 1rem 1.25rem;
+  background: var(--deck-veil);
+}
+
+.deck ul {
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.deck .card {
+  /* In the application this is a <button> and therefore a box in its own
+     right. Here it is a <span>, an inline element on which width and height
+     would have no effect without this line — the cards would collapse onto
+     their bare letters. */
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 4.8rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+}
+
+.deck .card.hovered { transform: translateY(-6px); border-color: var(--accent); }
+
+.deck .card.played {
+  transform: translateY(-12px);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-accent);
+}
+
+.deck.spent .card { opacity: 0.4; }
+
+/* ==========================================================================
+   DIRECTIONS
+   Each block sets nothing but values. Where a direction additionally needs a
+   change inside a component, that is stated in a comment here and in the
+   prose below.
+   ========================================================================== */
+
+/* --- Current state: the values that are in web/src/app.css today ---------- */
+
+.current {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #10151c;
+  --surface: #1a2230;
+  --surface-raised: #232d3d;
+  --border: #33415a;
+
+  --text: #e6ebf2;
+  --text-dim: #8d9bb0;
+
+  --accent: #4c8dff;
+  --accent-dim: #35507f;
+  --accent-text: #0b1220;
+
+  --good: #3ecf8e;
+  --bad: #ff6b6b;
+
+  --felt: #16362b;
+  --felt-edge: #1f5442;
+
+  --card-face: #eef2f8;
+  --card-face-text: #121a26;
+  --card-face-border: #cbd5e4;
+  --card-back: #2b3950;
+  --card-back-alt: #35476a;
+
+  /* Derived values. Today these are not custom properties in app.css but sit
+     hardcoded in the components; they are pulled out here so that the
+     directions can vary them at all. */
+  --radius-panel: 16px;
+  --radius-card: 7px;
+  --radius-control: 8px;
+  --radius-bar: 3px;
+  --display-tracking: -0.02em;
+  --display-weight: 700;
+  --panel-border: transparent;
+  --shadow-panel: none;
+  --shadow-card: none;
+  --shadow-accent: none;
+  --shadow-dot: none;
+  --table-surface: var(--felt);
+  --table-inner: none;
+  --card-back-pattern: repeating-linear-gradient(45deg, var(--card-back) 0 6px, var(--card-back-alt) 6px 12px);
+  --card-back-border: var(--accent-dim);
+  --bar-track: var(--felt-edge);
+  --bar-fill: var(--card-face);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Direction A: "Table lamp" --------------------------------------------
+   The same arrangement as today, but a colder base black, quieter dividing
+   lines and a warm brass yellow as the accent instead of the framework blue.
+   The table is lit from above rather than filled flat.
+   Needs beyond values: nothing. The cone of light is a gradient in
+   --table-surface and the inner shadow is a box-shadow — both settable as
+   properties without touching a component. ---------------------------------- */
+
+.dir-a {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #0c0f13;
+  --surface: #14181f;
+  --surface-raised: #1d222b;
+  --border: #2b323d;
+
+  --text: #edf0f4;
+  --text-dim: #97a1b0;
+
+  --accent: #f0b429;
+  --accent-dim: #6d5518;
+  --accent-text: #1b1305;
+
+  --good: #4ec98d;
+  --bad: #ff7a70;
+
+  --felt: #14372c;
+  --felt-edge: #1f4c3c;
+
+  --card-face: #f8f4ec;
+  --card-face-text: #171d26;
+  --card-face-border: #ddd4c3;
+  --card-back: #12261e;
+  --card-back-alt: #1a3529;
+
+  --radius-panel: 18px;
+  --radius-card: 10px;
+  --radius-control: 9px;
+  --radius-bar: 999px;
+  --display-tracking: -0.03em;
+  --display-weight: 700;
+  --panel-border: #20262f;
+  --shadow-panel: 0 1.5rem 3rem rgb(0 0 0 / 45%);
+  --shadow-card: 0 0.45rem 1rem rgb(0 0 0 / 40%);
+  --shadow-accent: 0 0.4rem 1rem rgb(240 180 41 / 22%);
+  --shadow-dot: 0 0 0.5rem rgb(78 201 141 / 60%);
+  /* The cone of light. Tightly drawn and placed high, so that it reads as
+     light from a lamp above the table rather than as a flat tint; towards the
+     rim it runs well into the dark. */
+  --table-surface: radial-gradient(70% 95% at 50% 4%, #2d6c56 0%, #21503f 35%, #163629 65%, #0f2419 100%);
+  --table-inner: inset 0 0.15rem 3rem rgb(0 0 0 / 45%), 0 1.5rem 3.5rem rgb(0 0 0 / 40%);
+  /* Card backs in the tone of the table rather than in a third colour; the
+     brass hairline at the edge ties them to the accent. */
+  --card-back-pattern: repeating-linear-gradient(45deg, var(--card-back) 0 6px, var(--card-back-alt) 6px 12px);
+  --card-back-border: #4a4022;
+  --bar-track: rgb(255 255 255 / 8%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Direction B: "Clear room" --------------------------------------------
+   Takes the game metaphor out. No felt: the table is a slightly raised surface
+   in the surface colour with a fine rim and a hint of light along its top
+   edge. Maximum contrast, white cards, indigo as the accent.
+   Needs beyond values: the card back is no longer a stripe pattern but a calm
+   surface with a small mark in the middle. As a property that is a gradient
+   without stripes; the mark itself would be a small addition in Seat.svelte.
+   Here it is suggested by the gradient. ------------------------------------- */
+
+.dir-b {
+  /* The specimens render in the system stack, because that is what this
+     document could show before the typeface was committed. The application
+     ships 'Geist' in front of exactly this stack; see the note at the top. */
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #08090b;
+  --surface: #101216;
+  --surface-raised: #171a20;
+  --border: #5c6274;
+
+  --text: #f2f4f7;
+  --text-dim: #8a919d;
+
+  --accent: #8b7bff;
+  --accent-dim: #3d3775;
+  --accent-text: #0a0812;
+
+  --good: #46d39a;
+  --warn: #e3b341;
+  --bad: #ff6b6b;
+  --bad-surface: #2b1519;
+
+  --felt: #12151b;
+  --felt-edge: #272c36;
+
+  --card-face: #ffffff;
+  --card-face-text: #0d1014;
+  --card-face-border: #ffffff;
+  --card-back: #242936;
+  --card-back-alt: #1b1f29;
+
+  --radius-panel: 14px;
+  /* A card is a rectangle with broken corners, not a tile: at this card size
+     12px made them look rounded. */
+  --radius-card: 6px;
+  /* This border was #23272f when the direction was drawn, and it was measured
+     afterwards: against the page it reached 1.33:1, where the specification
+     requires 3:1 from the visible boundary of a control. It is the one value in
+     this direction that the implementation moved, and it moved because a
+     measurement said so rather than because somebody preferred it. In the
+     running application it reads as a hairline rather than a frame, and the
+     empty card slot now visibly says "has not voted". */
+  --radius-control: 8px;
+  --radius-bar: 999px;
+  --display-tracking: -0.04em;
+  --display-weight: 650;
+  --panel-border: #1c2027;
+  --shadow-panel: 0 1.25rem 2.5rem rgb(0 0 0 / 60%);
+  --shadow-card: 0 0.5rem 1.25rem rgb(0 0 0 / 55%);
+  --shadow-accent: 0 0.4rem 1.2rem rgb(139 123 255 / 30%);
+  --shadow-dot: 0 0 0.5rem rgb(70 211 154 / 55%);
+  --table-surface: radial-gradient(110% 140% at 50% 0%, #1a1e27 0%, #14171d 50%, #0f1116 100%);
+  --table-inner: inset 0 1px 0 rgb(255 255 255 / 6%), 0 1.75rem 4rem rgb(0 0 0 / 55%);
+  /* On this very dark ground the back must read as a played card without
+     hesitation, so it is lighter than the background rather than merely
+     different from it. */
+  --card-back-pattern:
+    radial-gradient(55% 55% at 50% 50%, rgb(139 123 255 / 20%) 0%, transparent 70%),
+    linear-gradient(var(--card-back), var(--card-back-alt));
+  /* Raised with --border, and for the same measured reason. */
+  --card-back-border: #5c6274;
+  --bar-track: rgb(255 255 255 / 7%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* --- Direction C: "Card room" ---------------------------------------------
+   Goes the other way and commits to the game: a warm, dark room, real green
+   felt with a fine grain, cream cards with a classic red back, brass as the
+   accent. The direction that suits the thrown paper balls best.
+   Needs beyond values: the grain of the felt is a second, very flat gradient
+   in --table-surface. No image, no file, no foreign server — but it has to
+   stay restrained, or the table looks dirty rather than textile. ------------ */
+
+.dir-c {
+  --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --background: #16120e;
+  --surface: #211b15;
+  --surface-raised: #2c241b;
+  --border: #3e3226;
+
+  --text: #f4ece0;
+  --text-dim: #a89683;
+
+  --accent: #d0a52c;
+  --accent-dim: #6b5417;
+  --accent-text: #1b1407;
+
+  --good: #63c48c;
+  --bad: #f1706a;
+
+  --felt: #1d4e36;
+  /* Muted brass. A bright, continuous edge reads as a painted-on frame; it
+     only looks valuable once it almost disappears. */
+  --felt-edge: #5b4a21;
+
+  --card-face: #fbf7ed;
+  --card-face-text: #1b1a17;
+  --card-face-border: #e2d8c2;
+  --card-back: #5d2b2b;
+  --card-back-alt: #6e3434;
+
+  --radius-panel: 12px;
+  --radius-card: 8px;
+  --radius-control: 7px;
+  --radius-bar: 2px;
+  --display-tracking: -0.01em;
+  --display-weight: 700;
+  --panel-border: #33291f;
+  --shadow-panel: 0 1.5rem 3rem rgb(0 0 0 / 55%);
+  --shadow-card: 0 0.5rem 0.9rem rgb(0 0 0 / 45%);
+  --shadow-accent: 0 0.35rem 0.9rem rgb(208 165 44 / 25%);
+  --shadow-dot: 0 0 0.45rem rgb(99 196 140 / 55%);
+  /* Felt: a base gradient plus a very flat grain made of two fine stripe
+     patterns crossing each other. */
+  --table-surface:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 4%) 0 1px, transparent 1px 3px),
+    radial-gradient(130% 160% at 50% 10%, #276144 0%, #1d4e36 45%, #133d29 100%);
+  --table-inner: inset 0 0 0 1px rgb(208 165 44 / 14%), inset 0 0.2rem 3rem rgb(0 0 0 / 45%), 0 1.5rem 3rem rgb(0 0 0 / 50%);
+  --card-back-pattern:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 7%) 0 2px, transparent 2px 7px),
+    linear-gradient(var(--card-back), var(--card-back-alt));
+  --card-back-border: #7d4040;
+  --bar-track: rgb(0 0 0 / 28%);
+  --bar-fill: var(--accent);
+  --deck-veil: linear-gradient(to top, var(--background) 70%, transparent);
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>Planning Poker — Visual Language</h1>
+<p class="lede">
+  Three directions for a new visual language, each in the three states that matter in the
+  application. All three stay dark, all three run on the system font stack, and all three use the
+  same CSS custom property names as <code>web/src/app.css</code> — the difference between them is a
+  difference in values, not in code.
+</p>
+<p class="note">
+  <strong>Decided: direction B, "Clear room", set in Geist.</strong> The other two stay in this
+  document, because the reasoning behind the choice would not be followable without the
+  alternatives that were rejected. Two changes to B against the first draft are already worked in:
+  cards have only slightly broken corners at 6px instead of the initial 12px, and the row of cards
+  along the bottom edge is drawn as actual cards — in the first draft that was a fault of this
+  document, where they had collapsed onto their bare letters.
+</p>
+<p class="note">
+  <strong>On the typeface.</strong> The specimens below still render in the system font stack,
+  which is what the application does today; the switch to Geist happens with the implementation.
+  Geist was chosen over Inter and IBM Plex Sans: it is the most matter-of-fact of the three, the
+  smallest file at 29 KB, and its tighter setting suits the narrow cards. One candidate,
+  Instrument Sans, was ruled out on a hard fact rather than on taste — it does not contain the
+  <code>½</code> glyph, and the Fibonacci deck has a card that needs it, which would leave exactly
+  one card in the deck rendered in a substituted typeface. Geist is licensed under the SIL Open
+  Font License 1.1, so it may be bundled provided its licence text is bundled with it.
+</p>
+<p class="note">
+  This file is a design document and not part of the delivered application. It lives under
+  <code>docs/</code>, is therefore neither bundled nor served, and no visitor sees it. Authoritative
+  for how the running application looks are <code>web/src/app.css</code> and the components alone;
+  where this document disagrees with them, the code is right.
+</p>
+
+<nav>
+  <ol>
+    <li><a href="#current">Current state</a></li>
+    <li><a href="#a">A — Table lamp</a></li>
+    <li><a href="#b">B — Clear room</a></li>
+    <li><a href="#c">C — Card room</a></li>
+  </ol>
+</nav>
+
+<!-- ==================== CURRENT ==================== -->
+<section class="variant" id="current" data-variant="current">
+  <h2><span class="kicker">For comparison</span>Current state</h2>
+  <p>
+    The values that are in <code>web/src/app.css</code> today, rendered through the same mirror of
+    the components as the directions below. That almost no shadows appear here is not an oversight
+    of the mirror: the application really does set almost none.
+  </p>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Values as CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== A ==================== -->
+<section class="variant" id="a" data-variant="dir-a">
+  <h2><span class="kicker">Direction A</span>Table lamp</h2>
+  <p>
+    Keeps today's arrangement — dark room, green table, light cards — and sharpens it. Three
+    interventions carry the effect: the base black becomes colder and deeper, the dividing lines
+    become quieter (today, at <code>#33415a</code>, they are strong enough to speak rather than
+    merely separate), and the accent moves from blue to a warm brass yellow. The table is no longer
+    filled flat but lit from above.
+  </p>
+  <p>
+    The reason for the change of colour: <code>#4c8dff</code> is the blue every framework ships with
+    — it is not wrong, it is simply nobody's decision. Warm yellow on near-black reads as a lit
+    table, and it gives the cream cards something to stand against instead of a second cold colour.
+  </p>
+  <dl class="tradeoff">
+    <dt>Cost</dt><dd>No new files, no new typeface. Implementable as a value swap in <code>app.css</code> plus pulling out the radii and shadows that are hardcoded today.</dd>
+    <dt>Risk</dt><dd>Yellow as an accent on dark has strong contrast, but yellow text on light surfaces would not — the accent may be fill and border, never type on white.</dd>
+    <dt>Loss</dt><dd>None that I can see. This is the most conservative of the three.</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Values as CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== B ==================== -->
+<section class="variant" id="b" data-variant="dir-b">
+  <h2><span class="kicker">Direction B — chosen</span>Clear room</h2>
+  <p>
+    Takes the game metaphor out. There is no felt any more: the table is a slightly raised surface
+    in the surface colour, with a fine rim and a hint of light along its top edge. The cards are
+    pure white with a clear drop shadow, the back is a calm surface with a mark instead of a stripe
+    pattern, and the accent is an indigo. The result looks like a tool, not like a card table.
+  </p>
+  <dl class="tradeoff">
+    <dt>Cost</dt><dd>A value swap plus a small addition in <code>Seat.svelte</code> for the mark on the card back. Here it is suggested by a spot of light.</dd>
+    <dt>Gain</dt><dd>The highest contrast of the three and therefore the best legibility; also the direction that ages the least.</dd>
+    <dt>Loss</dt><dd>The table as a table. That hits the paper balls and flowers flying across it in particular — the playfulness of that feature no longer has a place where it happens.</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Values as CSS</summary><pre data-code></pre></details>
+</section>
+
+<!-- ==================== C ==================== -->
+<section class="variant" id="c" data-variant="dir-c">
+  <h2><span class="kicker">Direction C</span>Card room</h2>
+  <p>
+    Goes the opposite way and commits to the game: a warm, dark room as if panelled in wood, real
+    green felt with a fine grain and a brass edge, cream cards with a classic red back. The accent
+    is brass. Of the three directions this is the only one with a handwriting of its own, and the
+    only one in which a thrown paper ball looks like it belongs.
+  </p>
+  <dl class="tradeoff">
+    <dt>Cost</dt><dd>A value swap. The grain of the felt is two very flat crossed stripe patterns as a gradient — no image, no file, no foreign server.</dd>
+    <dt>Risk</dt><dd>Warm darkness is more prone to insufficient contrast than cold darkness, and beyond a certain strength the grain tips from "textile" to "dirty". Both are a matter of discipline during implementation, not of the direction.</dd>
+    <dt>Gain</dt><dd>Furthest away from "looks like every other tool".</dd>
+  </dl>
+  <ul class="swatches" data-swatches></ul>
+  <div class="frames" data-frames></div>
+  <details class="tokens"><summary>Values as CSS</summary><pre data-code></pre></details>
+</section>
+
+<section class="variant">
+  <h2><span class="kicker">Observation</span>Two things no colour fixes</h2>
+  <p>
+    <strong>The table is empty while the round runs.</strong> The same effect shows in all four
+    sections above: while people vote, the large surface holds nothing but the <em>Reveal</em>
+    button and the line "Waiting for votes…". The space is reserved because the tally has to go
+    there after the reveal and the table must not jump while it does — that is right, and
+    <code>RoomView.svelte</code> says so explicitly. It still is the most noticeable weakness of the
+    view, and it is a question of arrangement, not of palette. Changing it would be a proposal of
+    its own, because it touches the <code>table-ui</code> specification; here it is only named.
+  </p>
+  <p>
+    <strong>A and C are neighbours, B is the outlier.</strong> Honestly, Table lamp and Card room
+    differ less than two names suggest: both keep the green table and a yellow accent. Their
+    difference lies in the temperature of the room around it, in the colour of the card backs and
+    in the grain. Choosing between A and C is choosing between two degrees of the same thing.
+    Choosing B is choosing something else.
+  </p>
+</section>
+
+<section class="variant">
+  <h2><span class="kicker">Next</span>What follows from the choice</h2>
+  <p>
+    The chosen direction is implemented through the openspec flow: a change proposal with its
+    reasoning, a design document, a task list and recorded verification. Only what must hold
+    permanently — rather than what merely looks like this today — goes into the specifications under
+    <code>openspec/specs/</code>: minimum contrast, the rule that the whole visual design is served
+    from the application's own container, and respect for <code>prefers-reduced-motion</code> where
+    there is movement. Individual colour values and corner radii do not belong there; they belong in
+    <code>app.css</code> and in this document.
+  </p>
+  <p>
+    The behavioural specifications are the acceptance criteria for this work and are not up for
+    negotiation: seats stay on an ellipse around the table, the switch to the list below happens at
+    <code>58rem</code> and narrower, a name of the full permitted length is shown whole, the deck
+    stays reachable along the bottom edge, and no average is computed.
+  </p>
+</section>
+
+</div>
+
+<script>
+/* Builds every variant from one template, so that all directions are
+   guaranteed to show the same content in the same states and a difference can
+   never come from a typo in a copy. Swatches and the value list are read from
+   the properties as actually computed, so they cannot drift from the CSS
+   above. */
+
+const PARTICIPANTS = [
+  { name: 'Nadja',  card: 'L',  hasPlayed: true,  away: false, isYou: false },
+  { name: 'Jonas',  card: 'M',  hasPlayed: true,  away: false, isYou: false },
+  { name: 'Timo',   card: null, hasPlayed: false, away: true,  isYou: false },
+  { name: 'Pia',    card: null, hasPlayed: false, away: false, isYou: false },
+  { name: 'Thomas', card: 'M',  hasPlayed: true,  away: false, isYou: true },
+];
+
+const DECK = ['XS', 'S', 'M', 'L', 'XL', '?', '☕'];
+
+/* The tally that matches the cards above: M twice, L once, coffee once; Timo
+   was away and did not vote. */
+const SCALE = [
+  { card: 'XL', count: 0 },
+  { card: 'L',  count: 1 },
+  { card: 'M',  count: 2 },
+  { card: 'S',  count: 0 },
+  { card: 'XS', count: 0 },
+];
+const ASIDES = [
+  { card: '?',  count: 0 },
+  { card: '☕', count: 1 },
+];
+
+const GEAR = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M6.7 1.5h2.6l.4 1.6c.4.2.8.4 1.1.7l1.6-.5 1.3 2.3-1.2 1.1a5 5 0 010 1.3l1.2 1.1-1.3 2.3-1.6-.5c-.3.3-.7.5-1.1.7l-.4 1.6H6.7l-.4-1.6c-.4-.2-.8-.4-1.1-.7l-1.6.5-1.3-2.3L3.5 8a5 5 0 010-1.3L2.3 5.6l1.3-2.3 1.6.5c.3-.3.7-.5 1.1-.7l.4-1.6z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="8" cy="7.35" r="1.75" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`;
+
+const PENCIL = `<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+
+function seat(participant, revealed) {
+  let card;
+  if (revealed) {
+    card = participant.card
+      ? `<span class="card face-up">${participant.card}</span>`
+      : `<span class="card empty">—</span>`;
+  } else if (participant.hasPlayed) {
+    card = `<span class="card face-down"></span>`;
+  } else {
+    card = `<span class="card empty"></span>`;
+  }
+
+  const name = participant.isYou
+    ? `<span class="name">${participant.name} ${PENCIL}</span>`
+    : `<span class="name">${participant.name}</span>`;
+
+  return `
+    <li class="seat${participant.isYou ? ' you' : ''}${participant.away ? ' away' : ''}">
+      <div class="card-slot">${card}</div>
+      <div class="who">${name}${participant.away ? '<span class="away-tag">away</span>' : ''}</div>
+    </li>`;
+}
+
+function tallyRow(entry, busiest) {
+  const share = busiest === 0 ? 0 : (entry.count / busiest) * 100;
+  return `
+    <div class="row${entry.count === 0 ? ' none' : ''}">
+      <dt>${entry.card}</dt>
+      <dd>
+        <span class="track"><span class="bar" style="width:${share}%"></span></span>
+        <span class="count">${entry.count}</span>
+      </dd>
+    </div>`;
+}
+
+function tally() {
+  const busiest = Math.max(...SCALE.concat(ASIDES).map((entry) => entry.count));
+  const votes = SCALE.concat(ASIDES).reduce((total, entry) => total + entry.count, 0);
+  return `
+    <div class="results">
+      <dl class="chart">${SCALE.map((entry) => tallyRow(entry, busiest)).join('')}</dl>
+      <dl class="chart asides">${ASIDES.map((entry) => tallyRow(entry, busiest)).join('')}</dl>
+      <p class="summary">${votes} votes.</p>
+    </div>`;
+}
+
+function deck(revealed) {
+  const cards = DECK.map((card) => {
+    let classes = 'card';
+    if (!revealed && card === 'M') classes += ' played';
+    return `<li><span class="${classes}">${card}</span></li>`;
+  }).join('');
+  return `<div class="deck${revealed ? ' spent' : ''}"><ul>${cards}</ul></div>`;
+}
+
+function table(revealed) {
+  return `
+    <div class="app">
+      <div class="room-header">
+        <div class="left"><span class="conn"><span class="dot"></span>Connected</span></div>
+        <div class="middle"><span class="btn">New round</span></div>
+        <div class="right">
+          <span class="icon-btn">${GEAR}</span>
+          <span class="btn ghost">Invite players</span>
+        </div>
+      </div>
+      <div class="table-area">
+        <div class="arena">
+          <div class="table">
+            <div class="action${revealed ? ' spent' : ''}"><span class="btn primary">Reveal</span></div>
+            <div class="info">
+              ${revealed ? tally() : '<p class="status">Waiting for votes…</p>'}
+            </div>
+          </div>
+          <ul class="seats">${PARTICIPANTS.map((participant) => seat(participant, revealed)).join('')}</ul>
+        </div>
+      </div>
+      ${deck(revealed)}
+    </div>`;
+}
+
+function entryScreen() {
+  return `
+    <div class="app centered">
+      <div class="entry-card">
+        <h1>Planning Poker</h1>
+        <p class="sub">Start a game, share the link, estimate together.</p>
+        <p class="legend">Deck</p>
+        <div class="deck-options">
+          <label class="chosen"><span>T-shirt sizes</span></label>
+          <label><span>Fibonacci</span></label>
+        </div>
+        <span class="btn primary">Start a new game</span>
+      </div>
+    </div>`;
+}
+
+const EXCERPTS = [
+  ['Entry screen', entryScreen],
+  ['Table, round running — cards face down', () => table(false)],
+  ['Table, revealed — cards and tally', () => table(true)],
+];
+
+/* These properties are shown as swatches; the value list further down shows
+   all of them, including radii and shadows. */
+const SWATCHED = [
+  '--background', '--surface', '--surface-raised', '--border',
+  '--text', '--text-dim', '--accent', '--accent-text',
+  '--felt', '--felt-edge', '--card-face', '--card-back',
+];
+
+const ALL = [
+  '--background', '--surface', '--surface-raised', '--border',
+  '--text', '--text-dim',
+  '--accent', '--accent-dim', '--accent-text',
+  '--good', '--bad',
+  '--felt', '--felt-edge',
+  '--card-face', '--card-face-text', '--card-face-border', '--card-back', '--card-back-alt',
+  '--radius-panel', '--radius-card', '--radius-control', '--radius-bar',
+  '--display-tracking', '--display-weight',
+  '--panel-border', '--shadow-panel', '--shadow-card', '--shadow-accent', '--shadow-dot',
+  '--table-surface', '--table-inner',
+  '--card-back-pattern', '--card-back-border',
+  '--bar-track', '--bar-fill', '--deck-veil',
+];
+
+/* Two switches in the address bar for looking at one direction without
+   distraction: ?only=dir-a shows that direction alone, and &bare additionally
+   drops the prose and stacks just the screen excerpts. */
+const parameters = new URLSearchParams(location.search);
+const only = parameters.get('only');
+if (only) {
+  for (const section of document.querySelectorAll('.variant')) {
+    if (section.dataset.variant !== only) section.remove();
+  }
+  document.querySelector('.doc > h1').remove();
+  document.querySelector('.doc > .lede').remove();
+  for (const note of document.querySelectorAll('.doc > .note')) note.remove();
+  document.querySelector('.doc > nav').remove();
+}
+if (parameters.has('bare')) {
+  for (const gone of document.querySelectorAll('.variant h2, .variant p, .variant dl.tradeoff, .swatches, details.tokens')) {
+    gone.remove();
+  }
+}
+
+for (const section of document.querySelectorAll('.variant[data-variant]')) {
+  const variant = section.dataset.variant;
+
+  const frames = section.querySelector('[data-frames]');
+  frames.innerHTML = EXCERPTS.map(
+    ([caption, build]) => `
+      <figure class="frame" style="margin:0">
+        <figcaption>${caption}</figcaption>
+        <div class="scroll">${build().replace('class="app', `class="app ${variant}`)}</div>
+      </figure>`,
+  ).join('');
+
+  /* Read swatches and the value list from the computed values of the first
+     excerpt, so that document and CSS cannot drift apart. */
+  const measured = frames.querySelector('.app');
+  const style = getComputedStyle(measured);
+  const value = (name) => style.getPropertyValue(name).trim();
+
+  /* Both blocks are absent when &bare is set — then there is nothing to fill. */
+  const swatches = section.querySelector('[data-swatches]');
+  if (swatches) {
+    swatches.innerHTML = SWATCHED.map(
+      (name) => `<li><span class="chip" style="background:${value(name)}"></span><span class="token">${name}</span>${value(name)}</li>`,
+    ).join('');
+  }
+
+  const valueList = section.querySelector('[data-code]');
+  if (valueList) {
+    const heading = section.querySelector('h2');
+    const title = heading ? heading.textContent.replace(/\s+/g, ' ').trim() : variant;
+    valueList.textContent =
+      `/* ${title} */\n:root {\n` +
+      ALL.map((name) => `  ${name}: ${value(name)};`).join('\n') +
+      `\n}`;
+  }
+}
+</script>
+</body>
+</html>

@@ -42,11 +42,15 @@ test('the join form explains visitor mode to a keyboard user and seats them as o
   await expect(box).not.toBeChecked();
 
   // The explanation is reachable without a pointer: focusing the control shows it.
+  // The closed state is opacity alone rather than visibility, deliberately: a
+  // hidden element leaves the accessibility tree, and this note is what the
+  // checkbox above points at with aria-describedby. Visibility is therefore the
+  // wrong thing to assert here — opacity is what changes.
   const info = page.getByRole('button', { name: 'What visitor mode means' });
   const hint = page.getByText('Visitors cannot vote.');
-  await expect(hint).toBeHidden();
+  await expect(hint).toHaveCSS('opacity', '0');
   await info.focus();
-  await expect(hint).toBeVisible();
+  await expect(hint).toHaveCSS('opacity', '1');
 
   await page.getByRole('textbox', { name: 'Your name' }).fill('Ada');
   await box.check();
