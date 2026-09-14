@@ -76,3 +76,23 @@ test('the deck can be chosen and the game started with the keyboard alone', asyn
   // The Fibonacci deck is the one that arrived, chosen without a pointer.
   await expect(page.locator('footer button.card').first()).toHaveText('0');
 });
+
+test('the t-shirt deck is the one already selected', async ({ page }) => {
+  // The scenario says so, and the list is now built from what the server sends,
+  // which is exactly the kind of change that could silently reorder it.
+  await page.goto('/');
+  await expect(page.locator('input[name="deck"]:checked')).toHaveValue('t-shirt');
+});
+
+test('the selection survives the cards not arriving', async ({ page }) => {
+  await page.route('**/api/decks', (route) => route.abort('failed'));
+  await page.goto('/');
+  await expect(page.locator('input[name="deck"]:checked')).toHaveValue('t-shirt');
+});
+
+test('the entry screen still states the application version', async ({ page }) => {
+  // Owned by the version change rather than by this one, but this branch moved
+  // the element it sits below, and nothing else guards it.
+  await page.goto('/');
+  await expect(page.locator('.version')).toHaveText(/^Version \d+\.\d+\.\d+$/);
+});
