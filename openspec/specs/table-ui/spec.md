@@ -10,11 +10,21 @@ round, reading the results, starting a fresh one, renaming, and inviting others.
 
 ### Requirement: The entry screen offers one thing
 
-The base URL SHALL show an entry screen dedicated to starting a new game. It SHALL offer two compact
-deck options, labelled `T-shirt sizes` and `Fibonacci`, directly above the start control, with
-`T-shirt sizes` selected by default. There is no list of games, no way to search for one and no way
-to enter a room identifier by hand: a room is reached only by its invitation link, which is what
-makes the link the thing that protects it.
+The base URL SHALL show an entry screen dedicated to starting a new game. The start control SHALL
+come first, and the deck choice SHALL be presented below it as a list of options — one per supported
+deck — with `T-shirt sizes` selected by default. There is no list of games, no way to search for one
+and no way to enter a room identifier by hand: a room is reached only by its invitation link, which
+is what makes the link the thing that protects it.
+
+Each option SHALL name its deck and SHALL show that deck's cards, in the deck's own order, separated
+by commas, so that somebody who has never seen the deck can tell what they are choosing before they
+choose it. Those card values SHALL come from the server rather than from a list written into the
+page, under the same rule that already governs the deck at the table: the server is the only place a
+deck is defined.
+
+If the card values cannot be obtained, the entry screen SHALL still offer both decks by name and
+SHALL still start a game. Not knowing what is in a deck is a smaller failure than not being able to
+start one.
 
 Starting a game SHALL create a room with the selected deck and take the visitor to it, at a URL they
 can copy and send to others. Choosing a deck does not seat the visitor or remember a preference for
@@ -35,6 +45,21 @@ later rooms.
 
 - **WHEN** a visitor opens the entry screen and starts a game without changing the deck choice
 - **THEN** the new room uses the t-shirt deck
+
+#### Scenario: Each option names its cards
+
+- **WHEN** a visitor looks at the deck options
+- **THEN** each option shows that deck's cards in the deck's own order, separated by commas
+
+#### Scenario: The cards shown are the cards dealt
+
+- **WHEN** a visitor starts a game with the deck whose cards the entry screen listed
+- **THEN** the deck at the table offers exactly those cards, in that order
+
+#### Scenario: A game can still be started when the cards are unknown
+
+- **WHEN** the entry screen cannot obtain the card values
+- **THEN** both decks are still offered by name and starting a game still works
 
 #### Scenario: The entry screen offers nothing else
 
@@ -110,8 +135,10 @@ so that arriving somewhere new is a deliberate act, not so that reloading become
 small interruption every time.
 
 The name SHALL NOT be stored on the visitor's device unless they have asked for it.
-The prompt SHALL offer that choice, **not selected by default**, and SHALL say beside
-it what would be stored and for how long. Only when it is selected is the name kept;
+The prompt SHALL offer that choice, **not selected by default**. The choice itself
+SHALL say, in its own label and without anything being opened, that the name would be
+kept on this device; what exactly is stored and for how long SHALL be available from
+an information control beside it. Only when the choice is selected is the name kept;
 otherwise nothing is written and nothing is read back, and the visitor types their
 name each time. Turning the choice off again SHALL delete what was stored, so that
 the same control both grants and withdraws it.
@@ -120,9 +147,18 @@ When the choice has been made, the field SHALL arrive pre-filled for a returning
 visitor and the choice SHALL still show as made, so that what is on screen matches
 what is on the device. The visitor may change the name before confirming.
 
-Wherever a name is entered, the interface SHALL say that a first name or nickname is
-enough and that everyone with the link to the room can see it. It SHALL be worded
-identically in every such place, so the same fact is not stated two ways.
+Wherever a name is entered, the interface SHALL make available, from an information
+control beside the name field, that a first name or nickname is enough and that
+everyone with the link to the room can see it. It SHALL be worded identically in
+every such place, so the same fact is not stated two ways.
+
+An information control SHALL be reachable by every means of operating the page, not
+only by a pointer: it SHALL disclose its text on hover, on keyboard focus and on tap,
+and its text SHALL be associated with the control it explains so that a screen reader
+announces the two together. Hover alone would put the text out of reach on a
+touchscreen and for anybody working without a mouse, which for the storage choice
+would mean deciding about what is kept on their device without being able to read
+what that is.
 
 This is a hint and SHALL NOT become a rule: no name is refused for being fuller than
 suggested, nothing about a name is inspected, and the game behaves identically
@@ -182,9 +218,23 @@ Names in that list SHALL be shown in full, under the same rule as at the table.
 
 #### Scenario: The offer says what it means
 
-- **WHEN** a visitor looks at the offer to remember their name
+- **WHEN** a visitor opens the information control beside the offer to remember their
+  name
 - **THEN** it states what is stored and how long it is kept, in plain words and
-  without having to open another page
+  without leaving the page
+
+#### Scenario: The offer is not misleading before it is opened
+
+- **WHEN** a visitor looks at the offer to remember their name without opening its
+  information
+- **THEN** the choice itself already says that the name would be kept on this device,
+  so nothing is stored on the strength of a label that did not say so
+
+#### Scenario: The information is reachable without a pointer
+
+- **WHEN** a visitor reaches an information control by keyboard, or taps it on a
+  touchscreen
+- **THEN** its text is disclosed, exactly as it is when a pointer hovers it
 
 #### Scenario: Renaming does not store a name behind anyone's back
 
@@ -229,7 +279,7 @@ Names in that list SHALL be shown in full, under the same rule as at the table.
 
 #### Scenario: The prompt says who will see the name
 
-- **WHEN** a visitor is at the name prompt
+- **WHEN** a visitor opens the information control beside the name field
 - **THEN** it tells them a first name or nickname is enough and that everyone with the
   link can see it
 
@@ -824,3 +874,63 @@ The entry screen at the base URL SHALL show the version carried by the running b
 
 - **WHEN** a visitor opens a room URL or starts a game from the entry screen
 - **THEN** the room screen does not show the version
+
+### Requirement: Text and controls are legible against their background
+
+The interface SHALL meet the contrast ratios of WCAG 2.1 level AA against the background each
+element actually sits on: at least 4.5:1 for body text, at least 3:1 for large text (24px, or
+18.66px when bold, and above), and at least 3:1 for the visible boundary of an interactive control,
+for a focus indicator, and for any graphic that carries meaning rather than decoration.
+
+A colour SHALL NOT be used for text on a surface where it fails that ratio, however well it works
+elsewhere. An accent that is legible as a filled button is not thereby legible as coloured text on a
+light surface, and the two uses are judged separately.
+
+This is a property of the palette that is checked rather than assumed. Whoever changes a colour
+SHALL measure the pairs that colour takes part in, not reason about them.
+
+#### Scenario: Body text meets the ratio
+
+- **WHEN** the contrast ratio between any body text and the surface behind it is measured
+- **THEN** it is at least 4.5:1
+
+#### Scenario: A control can be seen and its focus can be seen
+
+- **WHEN** the contrast ratio between an interactive control's visible boundary, or its focus
+  indicator, and the surface behind it is measured
+- **THEN** it is at least 3:1
+
+#### Scenario: A face-down card is distinguishable from the table
+
+- **WHEN** a participant has played a card in a hidden round
+- **THEN** the face-down card is distinguishable from the surface behind it at a ratio of at least
+  3:1, so that "has voted" is legible without relying on colour perception alone
+
+### Requirement: Movement respects a stated preference against it
+
+Where the interface moves — objects thrown across the table, cards lifting, surfaces fading — it
+SHALL honour the `prefers-reduced-motion: reduce` setting the visitor's system reports, by removing
+the movement or reducing it to a minimum.
+
+Removing the movement SHALL NOT remove the information it carried. A thrown object still arrives and
+is still seen; it simply does not fly. A played card is still shown as played; it simply does not
+rise. Anything a participant could learn from a moving interface SHALL remain learnable from a still
+one.
+
+#### Scenario: Thrown objects arrive without flying
+
+- **WHEN** a participant whose system asks for reduced motion is thrown an object
+- **THEN** the object still appears at the seat it was thrown at, without being animated across the
+  screen
+
+Note on what this does not say. Thrown objects are anonymous: the interface has never shown who
+threw one, and `participant-throws` names the sender only to settle who is allowed to throw, not to
+display them. This requirement exists so that removing the movement does not remove information, and
+there is no attribution here to lose. Adding one would be a change to the game, not an accommodation
+for a preference.
+
+#### Scenario: The interface still says what it said
+
+- **WHEN** a participant whose system asks for reduced motion plays a card, reveals a round and
+  starts a new one
+- **THEN** every state the animated interface would have shown is visible in the still one
