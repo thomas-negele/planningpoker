@@ -14,10 +14,6 @@ type Options struct {
 	// CreateGame creates an empty room and returns its URL identifier.
 	CreateGame http.Handler
 
-	// Decks reports the decks a game can be started with, so the entry screen can
-	// name their cards without keeping a copy of a deck.
-	Decks http.Handler
-
 	// LegalPages serves the reserved /legal subtree. It is registered whether or
 	// not an operator supplied notices, so that a request for one cannot fall
 	// through to the frontend's catch-all document and be answered with the
@@ -35,7 +31,10 @@ func NewRouter(opts Options) http.Handler {
 
 	mux.Handle("POST /api/games", opts.CreateGame)
 
-	mux.Handle("GET /api/decks", opts.Decks)
+	// Unlike the handlers above, this one depends on nothing — no manager, no
+	// operator files, no configuration — so there is nothing to inject and no
+	// field for a caller to forget.
+	mux.Handle("GET /api/decks", http.HandlerFunc(Decks))
 
 	mux.Handle("GET /api/legal", opts.LegalStatus)
 

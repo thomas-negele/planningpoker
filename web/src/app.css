@@ -161,3 +161,32 @@ button.primary {
   font-weight: 600;
   box-shadow: var(--shadow-accent);
 }
+
+/*
+ * Movement is a preference, and some people have set theirs to less of it.
+ *
+ * Every transition in this application decorates a change that has already
+ * happened: a card that is already played rises, a screen that is already stale
+ * fades. Taking the duration away therefore takes the movement and keeps
+ * everything it was carrying — the card is still raised, the screen is still
+ * dimmed, they simply arrive there at once. Nothing here is the only carrier of
+ * anything.
+ *
+ * This is written once for everything rather than component by component,
+ * because the next component added would otherwise have to remember. The thrown
+ * objects are the exception that proves it: they are animated in JavaScript,
+ * where no stylesheet can reach them, and so they read the same preference
+ * themselves — see ThrowLayer.svelte and settleForReducedMotion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* Not zero: a duration of zero suppresses transitionend, and code that
+       waits for it would wait for ever. */
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

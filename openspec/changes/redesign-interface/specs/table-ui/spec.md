@@ -45,8 +45,14 @@ one.
 #### Scenario: Thrown objects arrive without flying
 
 - **WHEN** a participant whose system asks for reduced motion is thrown an object
-- **THEN** they see that the object was thrown and by whom, without it being animated across the
+- **THEN** the object still appears at the seat it was thrown at, without being animated across the
   screen
+
+Note on what this does not say. Thrown objects are anonymous: the interface has never shown who
+threw one, and `participant-throws` names the sender only to settle who is allowed to throw, not to
+display them. This requirement exists so that removing the movement does not remove information, and
+there is no attribution here to lose. Adding one would be a change to the game, not an accommodation
+for a preference.
 
 #### Scenario: The interface still says what it said
 

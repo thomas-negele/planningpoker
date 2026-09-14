@@ -715,12 +715,15 @@ details.tokens pre {
    Here it is suggested by the gradient. ------------------------------------- */
 
 .dir-b {
+  /* The specimens render in the system stack, because that is what this
+     document could show before the typeface was committed. The application
+     ships 'Geist' in front of exactly this stack; see the note at the top. */
   --font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   --background: #08090b;
   --surface: #101216;
   --surface-raised: #171a20;
-  --border: #23272f;
+  --border: #5c6274;
 
   --text: #f2f4f7;
   --text-dim: #8a919d;
@@ -730,7 +733,9 @@ details.tokens pre {
   --accent-text: #0a0812;
 
   --good: #46d39a;
+  --warn: #e3b341;
   --bad: #ff6b6b;
+  --bad-surface: #2b1519;
 
   --felt: #12151b;
   --felt-edge: #272c36;
@@ -745,6 +750,13 @@ details.tokens pre {
   /* A card is a rectangle with broken corners, not a tile: at this card size
      12px made them look rounded. */
   --radius-card: 6px;
+  /* This border was #23272f when the direction was drawn, and it was measured
+     afterwards: against the page it reached 1.33:1, where the specification
+     requires 3:1 from the visible boundary of a control. It is the one value in
+     this direction that the implementation moved, and it moved because a
+     measurement said so rather than because somebody preferred it. In the
+     running application it reads as a hairline rather than a frame, and the
+     empty card slot now visibly says "has not voted". */
   --radius-control: 8px;
   --radius-bar: 999px;
   --display-tracking: -0.04em;
@@ -759,8 +771,11 @@ details.tokens pre {
   /* On this very dark ground the back must read as a played card without
      hesitation, so it is lighter than the background rather than merely
      different from it. */
-  --card-back-pattern: radial-gradient(55% 55% at 50% 50%, rgb(139 123 255 / 20%) 0%, transparent 70%), linear-gradient(#262b39, #1c202a);
-  --card-back-border: #3a4053;
+  --card-back-pattern:
+    radial-gradient(55% 55% at 50% 50%, rgb(139 123 255 / 20%) 0%, transparent 70%),
+    linear-gradient(var(--card-back), var(--card-back-alt));
+  /* Raised with --border, and for the same measured reason. */
+  --card-back-border: #5c6274;
   --bar-track: rgb(255 255 255 / 7%);
   --bar-fill: var(--accent);
   --deck-veil: linear-gradient(to top, var(--background) 65%, transparent);

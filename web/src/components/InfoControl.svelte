@@ -223,10 +223,4 @@
   .bubble.shown {
     opacity: 1;
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    .bubble {
-      transition: none;
-    }
-  }
 </style>

@@ -47,7 +47,7 @@
       screen, a running round and a revealed round against the template in the same three states.
 - [x] 3.3 Replace the striped card back in `Seat.svelte` with the calm surface and its centre mark.
       Verify a face-down card is distinguishable from the background at a ratio of at least 3:1.
-- [ ] 3.4 Measure every text-on-surface and control-boundary pair in the new palette against the
+- [x] 3.4 Measure every text-on-surface and control-boundary pair in the new palette against the
       ratios the specification names, and record the measured figures in the change's verification
       notes. Verify by moving any failing value in `app.css` and measuring again.
 
@@ -86,27 +86,27 @@
 
 ## 6. Reduced motion
 
-- [ ] 6.1 Honour `prefers-reduced-motion: reduce` for the card lift, the surface transitions and the
+- [x] 6.1 Honour `prefers-reduced-motion: reduce` for the card lift, the surface transitions and the
       thrown objects, so that movement is removed while what it conveyed remains visible — a thrown
       object still arrives and is still attributed. Verify with the system setting enabled, not by
       reading the code.
-- [ ] 6.2 Add Playwright coverage under an emulated reduced-motion preference asserting a thrown
+- [x] 6.2 Add Playwright coverage under an emulated reduced-motion preference asserting a thrown
       object is still seen and attributed. Verify with `cd e2e && npm test`.
 
 ## 7. Verification and record
 
-- [ ] 7.1 Run the project's verification order from CONTRIBUTING.md in full:
+- [x] 7.1 Run the project's verification order from CONTRIBUTING.md in full:
       `(cd web && npm ci && npm test && npm run check && npm run build)`, then `go vet ./...`,
       `gofmt -l .`, `go test -race -count=3 ./...` and
       `go test -race -count=3 -tags embedassets ./...`. Verify `gofmt -l .` prints nothing and every
       suite passes.
-- [ ] 7.2 Run the browser suite: `cd e2e && npm ci && npx playwright install chromium && npm test`,
+- [x] 7.2 Run the browser suite: `cd e2e && npm ci && npx playwright install chromium && npm test`,
       and `cd e2e && npm run check`. Verify both pass.
-- [ ] 7.3 Check the wide table layout and the narrow list layout across the 58rem breakpoint, and
+- [x] 7.3 Check the wide table layout and the narrow list layout across the 58rem breakpoint, and
       confirm the behaviours the specification fixes still hold: seats on the ellipse, a full-length
       name shown whole, the deck reachable along the bottom edge, no average computed.
-- [ ] 7.4 Record the verification results in the change, naming explicitly any check that was not
+- [x] 7.4 Record the verification results in the change, naming explicitly any check that was not
       run and why.
-- [ ] 7.5 Update `docs/design/visual-language.html` if the implementation departed from it anywhere,
+- [x] 7.5 Update `docs/design/visual-language.html` if the implementation departed from it anywhere,
       so that the document and `app.css` do not disagree. Verify by comparing the template's value
       list for direction B against the shipped `app.css`.
