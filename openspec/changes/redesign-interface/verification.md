@@ -208,20 +208,33 @@ property since this branch, and the visitor hint had a hardcoded corner radius.
   test now says what the requirement says: within about a seat's reach of that
   seat, and nowhere near a viewport edge, which is where a flight would begin.
 
-## Open, and deliberately not decided here
+## The two information controls, settled
 
-The interface now has **two different information controls**. This change built
-one, and the visitor-mode change independently built another with the same job:
-an "i" beside a checkbox, `aria-describedby`, a note that opens on hover, focus
-and click. They appear three rows apart on the join screen and do not look alike
-— one is a drawn circle at the right edge of its label, the other the letter "i"
-in a bordered circle directly after its text.
+The interface briefly carried two of them: this change built one, and the
+visitor-mode change independently built another with the same job — an "i"
+beside a checkbox, `aria-describedby`, a note that opens on hover, focus and
+click. They appeared three rows apart on the join screen and did not look alike.
 
-The visitor one also keeps its note at `visibility: hidden` while closed, which
-removes it from the accessibility tree, so the `aria-describedby` on that
-checkbox resolves to nothing until the button is pressed. This change's own
-control avoids that deliberately and says why in its source.
+The owner asked for them to be unified. `VisitorModeField` now uses the shared
+`InfoControl`, which settles two things at once.
 
-Consolidating them would mean rewriting part of a feature that was specified and
-archived a day ago. That is a decision for the owner, not a thing to do quietly
-inside a redesign.
+The visible one: three identical controls on one form instead of two drawings of
+the same idea.
+
+The one nobody would have seen: the visitor note was `visibility: hidden` while
+closed, and its source said it was "kept in the document for assistive
+technology, which reaches it through aria-describedby". Visibility does not keep
+anything in the accessibility tree — it removes the element from it, description
+and all. The intention was right and the property was wrong. The shared control
+uses opacity alone, deliberately, and a test now asserts that for all three
+controls: opacity 0 while closed, visibility still `visible`, display not
+`none`, and each note genuinely the target of the control it explains.
+
+`visitor-mode.spec.ts` changed one assertion as a consequence. It asserted
+`toBeHidden()` before focus, which was meaningful against `visibility: hidden`
+and would have been vacuously true against opacity. It now asserts the opacity,
+which is what actually changes.
+
+The wording and the accessible name are untouched, so the requirement in
+`visitor-mode` — "an adjacent, accessible information control marked with an
+'i'" explaining that visitors cannot vote — is met as before, and better.

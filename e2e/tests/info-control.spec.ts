@@ -149,3 +149,30 @@ test('Escape does not drag the focus to the control', async ({ page, request }) 
   await expect(bubbleOf(page, STORAGE)).toHaveCSS('opacity', '0');
   await expect(field).toBeFocused();
 });
+
+test('a closed explanation is still there for assistive technology', async ({ page, request }) => {
+  // This is the whole reason the closed state is opacity and never visibility or
+  // display: the note is what aria-describedby points at, and an element that is
+  // hidden by either of those leaves the accessibility tree, taking the
+  // description with it. All three controls on this form are checked, including
+  // the visitor one, which had its own implementation and this exact fault.
+  await page.goto(await room(request));
+
+  const bubbles = page.locator('.info .bubble');
+  await expect(bubbles).toHaveCount(3);
+
+  for (let i = 0; i < 3; i++) {
+    const bubble = bubbles.nth(i);
+    await expect(bubble).toHaveCSS('opacity', '0');
+    await expect(bubble).toHaveCSS('visibility', 'visible');
+    // Not a particular display value — absolute positioning decides that. The
+    // claim is only that it is not "none", which would remove it like the others.
+    expect(await bubble.evaluate((el) => getComputedStyle(el).display)).not.toBe('none');
+  }
+
+  // And each is genuinely the target of the control it explains.
+  for (const id of ['join-name-visibility', 'join-name-storage', 'join-visitor-hint']) {
+    await expect(page.locator(`#${id}`)).toHaveCount(1);
+    await expect(page.locator(`[aria-describedby="${id}"]`).first()).toHaveCount(1);
+  }
+});
