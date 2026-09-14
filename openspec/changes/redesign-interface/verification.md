@@ -17,10 +17,10 @@ From CONTRIBUTING.md, in its order, all from the repository root.
 | `go test -race -count=3 ./...` | ok in every package |
 | `go test -race -count=3 -tags embedassets ./...` | ok in every package |
 | `cd e2e && npm run check` | clean |
-| `cd e2e && npm test` | 25 pass, 0 fail |
+| `cd e2e && npm test` | 26 pass, 0 fail |
 
 The browser suite grew from 3 tests to 25. This change contributes the entry
-screen (7), the information controls (7) and reduced motion (3); the rest came
+screen (7), the information controls (8) and reduced motion (3); the rest came
 with main and still pass.
 
 Re-run in full after merging main, not only before.
@@ -118,11 +118,13 @@ at 3.28:1 — is what makes it perceivable as an object.
 
 ## What was not run, and why
 
-- **No Docker build.** The licence requirement says the licence must be inside
-  the container image. That was verified one level down, by checking it is inside
-  the embedded asset tree the image is built from and is served by the embedded
-  binary — the image copies that binary and nothing else. Building the image was
-  not run here.
+- ~~No Docker build.~~ Run after all. `docker build` succeeds and the resulting
+  image is 16 MB. Started from that image, the application serves the entry
+  document, `GET /api/decks`, the typeface at 69,760 bytes and its licence at
+  4,383 bytes opening with the Geist authors' copyright line, and sends the
+  Content-Security-Policy header. That settles the one scenario that had been
+  verified only one level down: the licence is demonstrably inside the container
+  image, because a distroless image with no shell served it.
 - **No real screen reader.** The association between a control and its
   explanation is asserted structurally, by checking `aria-describedby` resolves
   to the element holding the text, and by keeping that element out of any state
