@@ -134,3 +134,18 @@ test('joining and renaming word the same fact the same way', async ({
     await context.close();
   }
 });
+
+test('Escape does not drag the focus to the control', async ({ page, request }) => {
+  // The bubble can be open purely because a pointer rests on the trigger. Escape
+  // then belongs to whatever the person is actually doing, not to this control.
+  await page.goto(await room(request));
+
+  const field = page.getByRole('textbox', { name: 'Your name' });
+  await field.click();
+  await page.getByRole('button', { name: STORAGE }).hover();
+  await expect(bubbleOf(page, STORAGE)).toHaveCSS('opacity', '1');
+
+  await page.keyboard.press('Escape');
+  await expect(bubbleOf(page, STORAGE)).toHaveCSS('opacity', '0');
+  await expect(field).toBeFocused();
+});

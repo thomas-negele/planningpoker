@@ -90,12 +90,20 @@
     if (open) void place();
   });
 
-  async function dismiss() {
+  /**
+   * Escape puts the text away without touching the focus.
+   *
+   * A disclosure that contains something focusable has to hand the focus back
+   * when it closes. This one contains a sentence and nothing else, and Escape is
+   * listened for on the window — so the bubble can be open purely because a
+   * pointer is resting on the trigger. Calling focus() here would then drag the
+   * focus out of whatever the person was actually doing, on a key press that had
+   * nothing to do with this control.
+   */
+  function dismiss() {
     dismissed = true;
     pinned = false;
     hovered = false;
-    await tick();
-    trigger?.focus();
   }
 
   function outside(event: PointerEvent) {
