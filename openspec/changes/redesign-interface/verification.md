@@ -17,11 +17,13 @@ From CONTRIBUTING.md, in its order, all from the repository root.
 | `go test -race -count=3 ./...` | ok in every package |
 | `go test -race -count=3 -tags embedassets ./...` | ok in every package |
 | `cd e2e && npm run check` | clean |
-| `cd e2e && npm test` | 15 pass, 0 fail |
+| `cd e2e && npm test` | 25 pass, 0 fail |
 
-The browser suite grew from 3 tests to 15: the entry screen (4), the information
-controls (6) and reduced motion (3) are new, and the three throw-picker tests
-that were already there still pass.
+The browser suite grew from 3 tests to 25. This change contributes the entry
+screen (7), the information controls (7) and reduced motion (3); the rest came
+with main and still pass.
+
+Re-run in full after merging main, not only before.
 
 ## The endpoint, the font and its licence, in the embedded build
 
@@ -165,3 +167,61 @@ Both predate this change and neither is in its scope.
 - On a narrow screen with enough participants, the sticky deck overlays the last
   row of the seat list. The page scrolls, so nothing is unreachable, but the
   partially veiled row looks unfinished.
+
+## After merging main
+
+`main` had moved twice while this branch was being built — the application
+version on the entry screen, and a visitor mode for non-voting participants.
+Both were merged in before verifying, because five of the files this branch
+rebuilt were touched there too, and reviewing code about to be rewritten by a
+merge is wasted work.
+
+Checked before merging: the two requirements this change replaces in full, "The
+entry screen offers one thing" and "A name is given before taking a seat", are
+unchanged in main. Archiving therefore cannot silently undo anything main wrote.
+
+Three conflicts, all in imports or in markup this branch had restructured. Two
+things the merge brought in did not know about the new design and now do: the
+visitor-mode placeholder had a literal copy of the deck veil, which is a custom
+property since this branch, and the visitor hint had a hardcoded corner radius.
+
+## Found by verifying, and closed
+
+- **Three scenarios had no evidence behind them.** The behaviour was right in
+  every case; nothing would have noticed if it stopped being. The t-shirt deck
+  being preselected is one of this change's own scenarios and now has a test for
+  both paths, with the deck list and without it — this matters more than it did,
+  because the option list is now built from what the server sends. The version
+  line is asserted too: it belongs to another change, but this branch moved the
+  element it sits below.
+
+- **Escape dragged the focus onto the information control.** Escape is listened
+  for on the window, and the bubble can be open purely because a pointer rests on
+  the trigger, so pressing Escape while typing a name pulled the focus out of the
+  field. The pattern came from the throw picker, where closing must hand the focus
+  back because that picker contains buttons; this disclosure contains a sentence
+  and nothing else. Fixed, with a test.
+
+- **One browser test asserted a number rather than its claim.** Visitor mode
+  changed the seat's geometry, so a settled throw lands 61px from a seat centre
+  where the test allowed 52px, one seat width. The behaviour was unchanged. The
+  test now says what the requirement says: within about a seat's reach of that
+  seat, and nowhere near a viewport edge, which is where a flight would begin.
+
+## Open, and deliberately not decided here
+
+The interface now has **two different information controls**. This change built
+one, and the visitor-mode change independently built another with the same job:
+an "i" beside a checkbox, `aria-describedby`, a note that opens on hover, focus
+and click. They appear three rows apart on the join screen and do not look alike
+— one is a drawn circle at the right edge of its label, the other the letter "i"
+in a bordered circle directly after its text.
+
+The visitor one also keeps its note at `visibility: hidden` while closed, which
+removes it from the accessibility tree, so the `aria-describedby` on that
+checkbox resolves to nothing until the button is pressed. This change's own
+control avoids that deliberately and says why in its source.
+
+Consolidating them would mean rewriting part of a feature that was specified and
+archived a day ago. That is a decision for the owner, not a thing to do quietly
+inside a redesign.
