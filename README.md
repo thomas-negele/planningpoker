@@ -4,6 +4,10 @@ Self-hosted Planning Poker with Go, Svelte and WebSockets. One container, in-mem
 state, no database. The repository also demonstrates specification-driven development
 with [OpenSpec](openspec/specs/).
 
+![A six-person round on a wide screen, just revealed. Every seat shows the card
+that person played, and the table between them counts how many chose each
+card.](docs/revealed-round.png)
+
 ## Features and limits
 
 - Choose the default t-shirt deck (`XS S M L XL ? ☕`) or Fibonacci
