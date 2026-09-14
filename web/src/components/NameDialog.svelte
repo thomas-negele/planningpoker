@@ -1,7 +1,13 @@
 <script lang="ts">
   import { untrack } from 'svelte';
 
-  import { MAX_NAME_LENGTH, NAME_VISIBILITY_HINT, REMEMBERED_FOR } from '../lib/name';
+  import {
+    MAX_NAME_LENGTH,
+    NAME_STORAGE_CHOICE,
+    NAME_STORAGE_DETAIL,
+    NAME_VISIBILITY_HINT,
+  } from '../lib/name';
+  import InfoControl from './InfoControl.svelte';
 
   // Edit the name and storage preference without blocking room updates.
 
@@ -43,6 +49,15 @@
     <h2 id="name-dialog-title">Your name</h2>
 
     <form onsubmit={submit}>
+      <span class="titled">
+        <span class="field">Your name</span>
+        <InfoControl
+          id="dialog-name-visibility"
+          label="Who can see this name"
+          text={NAME_VISIBILITY_HINT}
+        />
+      </span>
+
       <!-- svelte-ignore a11y_autofocus -->
       <input
         id="dialog-name"
@@ -54,20 +69,26 @@
         autocapitalize="words"
         spellcheck="false"
         aria-label="Your name"
+        aria-describedby="dialog-name-visibility"
         onkeydown={(e) => e.key === 'Escape' && oncancel()}
       />
 
-      <p class="hint">{NAME_VISIBILITY_HINT}</p>
-
       <div class="remember">
-        <input id="dialog-remember" type="checkbox" checked={keep} onchange={keepChanged} />
-        <label for="dialog-remember">
-          Remember my name on this device
-          <span class="detail">
-            Stores the name you typed, in this browser, for {REMEMBERED_FOR}, so you do not have
-            to type it again. Nothing else is stored. Untick to delete it.
-          </span>
-        </label>
+        <input
+          id="dialog-remember"
+          type="checkbox"
+          checked={keep}
+          aria-describedby="dialog-name-storage"
+          onchange={keepChanged}
+        />
+        <span class="titled">
+          <label for="dialog-remember">{NAME_STORAGE_CHOICE}</label>
+          <InfoControl
+            id="dialog-name-storage"
+            label="What is stored, and how to delete it"
+            text={NAME_STORAGE_DETAIL}
+          />
+        </span>
       </div>
 
       <div class="actions">
@@ -123,11 +144,16 @@
     outline-offset: 1px;
   }
 
-  .hint {
-    margin: 0.5rem 0 0;
+  /* A label and the information control that belongs to it, kept on one line. */
+  .titled {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .field {
+    font-size: 0.85rem;
     color: var(--text-dim);
-    font-size: 0.78rem;
-    line-height: 1.45;
   }
 
   .remember {
@@ -151,12 +177,8 @@
     cursor: pointer;
   }
 
-  .detail {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--text-dim);
-    font-size: 0.78rem;
-    line-height: 1.45;
+  .remember .titled {
+    align-items: baseline;
   }
 
   .actions {

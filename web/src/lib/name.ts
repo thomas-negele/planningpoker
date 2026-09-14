@@ -18,6 +18,22 @@ export const REMEMBERED_FOR = 'a year';
 export const NAME_VISIBILITY_HINT =
   'A first name or nickname is enough — everyone with the link to this room can see it.';
 
+/**
+ * The storage choice's own wording. It names the two facts that decide the
+ * choice — that something is kept, and on which device — so that nobody ticks
+ * it on the strength of a label that did not say so. The fuller explanation
+ * sits behind the information control beside it.
+ */
+export const NAME_STORAGE_CHOICE = `Remember my name on this device for ${REMEMBERED_FOR}`;
+
+/**
+ * What the information control beside that choice discloses. It does not repeat
+ * the duration, because the label already carries it.
+ */
+export const NAME_STORAGE_DETAIL =
+  'Stores the name you typed, in this browser, so you do not have to type it again. ' +
+  'Nothing else is stored. Untick to delete it.';
+
 export function rememberedName(): string {
   const prefix = `${NAME_COOKIE}=`;
   for (const entry of document.cookie.split(';')) {

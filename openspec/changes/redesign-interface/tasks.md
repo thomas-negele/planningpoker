@@ -27,7 +27,7 @@
 - [x] 2.3 Declare a local `@font-face` with `font-display: swap` and put the family at the front of
       `--font-stack`, keeping the existing system stack behind it. Verify the running page renders
       in Geist and that removing the file falls back to the system stack rather than to a serif.
-- [ ] 2.4 Give the smallest uppercase labels — the `away` tag above all — explicit letter-spacing,
+- [x] 2.4 Give the smallest uppercase labels — the `away` tag above all — explicit letter-spacing,
       because Geist sets tighter than the system stack there. Verify by eye at the table in both
       layouts.
 - [x] 2.5 Verify the self-contained rule still holds: search the built output for `http://` and
@@ -53,34 +53,35 @@
 
 ## 4. The entry screen
 
-- [ ] 4.1 Put the start control above the deck choice and render the decks as a list of options, one
+- [x] 4.1 Put the start control above the deck choice and render the decks as a list of options, one
       per deck, `T-shirt sizes` selected by default. Verify the existing behaviour still holds:
       selecting Fibonacci and starting creates a Fibonacci room.
-- [ ] 4.2 Fetch the deck list from `GET /api/decks` on load and show each deck's cards
+- [x] 4.2 Fetch the deck list from `GET /api/decks` on load and show each deck's cards
       comma-separated in the deck's own order. Verify the listed cards equal the cards the table
       then deals.
-- [ ] 4.3 Handle a failed or slow fetch: both decks stay offered by name and starting a game still
+- [x] 4.3 Handle a failed or slow fetch: both decks stay offered by name and starting a game still
       works. Verify with the request blocked in the browser's network panel, and with a Playwright
       test that intercepts and fails the route.
-- [ ] 4.4 Keep the option list operable by keyboard, as the deck options are today. Verify by
+- [x] 4.4 Keep the option list operable by keyboard, as the deck options are today. Verify by
       selecting each option with the keyboard alone.
 
 ## 5. The information controls
 
-- [ ] 5.1 Build one small component for the `i` control and its text: discloses on hover, on
+- [x] 5.1 Build one small component for the `i` control and its text: discloses on hover, on
       keyboard focus and on tap, closes on `Escape` and on a click outside, and is tied to the
-      control it explains through `aria-describedby`. Verify with a component test covering all
-      three ways of opening it.
-- [ ] 5.2 Use it in `NamePrompt.svelte` at the name field for the visibility hint, and at the
+      control it explains through `aria-describedby`. Verify with a browser test covering all three
+      ways of opening it — this project has no component-test setup and tests interactive
+      components end to end, as `throw-picker.spec.ts` already does.
+- [x] 5.2 Use it in `NamePrompt.svelte` at the name field for the visibility hint, and at the
       storage choice for the storage text, removing the two visible paragraphs. Verify both texts
       are still the identical shared strings from `lib/name.ts`, not retyped copies.
-- [ ] 5.3 Reword the storage choice's own label so that it states, without anything being opened,
+- [x] 5.3 Reword the storage choice's own label so that it states, without anything being opened,
       that the name would be kept on this device. Verify against the specification scenario "The
       offer is not misleading before it is opened".
-- [ ] 5.4 Apply the same treatment where a name is entered at the table, in `NameDialog.svelte`, so
+- [x] 5.4 Apply the same treatment where a name is entered at the table, in `NameDialog.svelte`, so
       the fact is worded identically in every place a name is entered. Verify both places show the
       same string.
-- [ ] 5.5 Add Playwright coverage for reaching an information control by keyboard and by tap on a
+- [x] 5.5 Add Playwright coverage for reaching an information control by keyboard and by tap on a
       touch viewport. Verify with `cd e2e && npm test`.
 
 ## 6. Reduced motion

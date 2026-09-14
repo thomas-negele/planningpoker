@@ -1,14 +1,16 @@
 <script lang="ts">
   import {
     MAX_NAME_LENGTH,
+    NAME_STORAGE_CHOICE,
+    NAME_STORAGE_DETAIL,
     NAME_VISIBILITY_HINT,
-    REMEMBERED_FOR,
     forgetName,
     nameIsRemembered,
     rememberName,
     rememberedName,
   } from '../lib/name';
   import type { Participant } from '../lib/protocol';
+  import InfoControl from './InfoControl.svelte';
 
   // Joining requires confirmation. Name storage is optional and can also be changed
   // from the table. autocomplete=off requests that the browser avoid saving its own
@@ -46,10 +48,18 @@
   <h1>Join the game</h1>
 
   <form onsubmit={submit}>
-    <label for="name">Your name</label>
+    <span class="titled">
+      <label for="name">Your name</label>
+      <InfoControl
+        id="join-name-visibility"
+        label="Who can see this name"
+        text={NAME_VISIBILITY_HINT}
+      />
+    </span>
     <input
       id="name"
       type="text"
+      aria-describedby="join-name-visibility"
       bind:value={name}
       maxlength={MAX_NAME_LENGTH}
       placeholder="e.g. Thomas"
@@ -57,17 +67,23 @@
       autocapitalize="words"
       spellcheck="false"
     />
-    <p class="hint">{NAME_VISIBILITY_HINT}</p>
 
     <div class="remember">
-      <input id="remember" type="checkbox" checked={remember} onchange={rememberChanged} />
-      <label for="remember">
-        Remember my name on this device
-        <span class="detail">
-          Stores the name you typed, in this browser, for {REMEMBERED_FOR}, so you do not have to
-          type it again. Nothing else is stored. Untick to delete it.
-        </span>
-      </label>
+      <input
+        id="remember"
+        type="checkbox"
+        checked={remember}
+        aria-describedby="join-name-storage"
+        onchange={rememberChanged}
+      />
+      <span class="titled">
+        <label for="remember">{NAME_STORAGE_CHOICE}</label>
+        <InfoControl
+          id="join-name-storage"
+          label="What is stored, and how to delete it"
+          text={NAME_STORAGE_DETAIL}
+        />
+      </span>
     </div>
 
     <button class="primary" type="submit" disabled={disabled || name.trim() === ''}>
@@ -137,12 +153,11 @@
     outline-offset: 1px;
   }
 
-  /* Keep the name-visibility advice visually secondary to the form. */
-  .hint {
-    margin: 0.5rem 0 0;
-    color: var(--text-dim);
-    font-size: 0.78rem;
-    line-height: 1.45;
+  /* A label and the information control that belongs to it, kept on one line. */
+  .titled {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
   }
 
   .remember {
@@ -166,12 +181,8 @@
     cursor: pointer;
   }
 
-  .detail {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--text-dim);
-    font-size: 0.78rem;
-    line-height: 1.45;
+  .remember .titled {
+    align-items: baseline;
   }
 
   button {
