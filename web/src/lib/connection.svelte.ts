@@ -102,8 +102,9 @@ export class RoomConnection {
     return this.canAct && this.seated && this.#pacer.ready;
   }
 
-  seat(name: string): void {
-    this.#send({ type: 'seat', name });
+  /** Takes a seat as a voter or, when visitor is true, as a non-voting visitor. */
+  seat(name: string, visitor: boolean): void {
+    this.#send({ type: 'seat', name, visitor });
   }
 
   vote(card: string): void {
@@ -124,8 +125,17 @@ export class RoomConnection {
     this.#send({ type: 'setDeck', deck });
   }
 
-  rename(name: string): void {
-    this.#send({ type: 'rename', name });
+  /**
+   * Changes the name and, when visitor is given, the seat's mode. Both are applied
+   * by the server together, so a name it refuses leaves the mode alone too.
+   */
+  rename(name: string, visitor?: boolean): void {
+    this.#send({ type: 'rename', name, visitor });
+  }
+
+  /** True while this page's own seat may not vote. */
+  get amVisitor(): boolean {
+    return this.room?.participants.find((p) => p.id === this.you)?.visitor ?? false;
   }
 
   throwAt(target: string, object: ThrowObject): void {

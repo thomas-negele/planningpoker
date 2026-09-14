@@ -1,5 +1,11 @@
 schema: spec-driven
 
+rules:
+  proposal:
+    - For every functional change, propose a major, minor or patch version increase and state that the user chooses the step before the version is changed. Documentation-only changes need no increase.
+  tasks:
+    - For every functional change, include a task to apply the user-chosen version increase before merge into main and verify that web/package.json and web/package-lock.json agree. Do not choose the step on the user's behalf. Documentation-only changes need no increase.
+
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.

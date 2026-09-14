@@ -33,7 +33,16 @@ type clientMessage struct {
 	Deck   string `json:"deck,omitempty"`
 	Target string `json:"target,omitempty"`
 	Object string `json:"object,omitempty"`
+
+	// Visitor is a pointer so that an omitted field is distinguishable from false.
+	// On a seat intent an omitted field means a voter; on a rename it means the
+	// seat keeps whatever mode it already has.
+	Visitor *bool `json:"visitor,omitempty"`
 }
+
+// visitorRequested reads the optional flag as a plain choice, treating omission as
+// the voter default. Use it for the seat intent only; rename passes the pointer on.
+func (m clientMessage) visitorRequested() bool { return m.Visitor != nil && *m.Visitor }
 
 // decodeClientMessage parses JSON and rejects missing or unknown intent names.
 // Domain operations validate the name and card values.
@@ -116,12 +125,14 @@ type deckMessage struct {
 	Scale []string `json:"scale"`
 }
 
-// participantEntry exposes presence and vote status without hidden card values.
+// participantEntry exposes presence, visitor mode and vote status without hidden
+// card values.
 type participantEntry struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Away  bool   `json:"away"`
-	Voted bool   `json:"voted"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Away    bool   `json:"away"`
+	Visitor bool   `json:"visitor"`
+	Voted   bool   `json:"voted"`
 }
 
 type resultsMessage struct {
@@ -161,6 +172,7 @@ const (
 	codeUnknownDeck   = "unknown_deck"
 	codeDeckLocked    = "deck_locked"
 	codeRoundRevealed = "round_revealed"
+	codeVisitorVote   = "visitor_cannot_vote"
 	codeBadMessage    = "bad_message"
 	codeInvalidRoomID = "invalid_room_id"
 	codeServerError   = "server_error"
@@ -191,6 +203,7 @@ var refusals = []refusal{
 	{game.ErrUnknownDeck, codeUnknownDeck},
 	{game.ErrDeckLocked, codeDeckLocked},
 	{game.ErrRoundRevealed, codeRoundRevealed},
+	{game.ErrVisitorCannotVote, codeVisitorVote},
 	{game.ErrInvalidRoomID, codeInvalidRoomID},
 	{game.ErrShortRandomRead, codeServerError},
 	{game.ErrRoomFull, codeRoomFull},
@@ -262,10 +275,11 @@ func roomFromView(v game.View) roomMessage {
 	participants := make([]participantEntry, 0, len(v.Participants))
 	for _, p := range v.Participants {
 		participants = append(participants, participantEntry{
-			ID:    string(p.ID),
-			Name:  p.Name,
-			Away:  p.Away,
-			Voted: p.Voted,
+			ID:      string(p.ID),
+			Name:    p.Name,
+			Away:    p.Away,
+			Visitor: p.Visitor,
+			Voted:   p.Voted,
 		})
 	}
 

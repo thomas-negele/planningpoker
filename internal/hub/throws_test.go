@@ -44,7 +44,7 @@ func (r *gatedReader) Read(p []byte) (int, error) {
 func seated(t *testing.T, room *Room, token, name string) (*Conn, game.ParticipantID) {
 	t.Helper()
 	conn := attach(t, room, token)
-	if !room.Seat(conn, name) {
+	if !room.Seat(conn, name, false) {
 		t.Fatal("seat request was not queued")
 	}
 	view := nextView(t, conn)

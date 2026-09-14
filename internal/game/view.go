@@ -32,6 +32,9 @@ type ParticipantView struct {
 	// Away participants keep their seat and vote.
 	Away bool
 
+	// Visitor participants hold a seat but may not vote.
+	Visitor bool
+
 	// Voted reports whether a card has been selected.
 	Voted bool
 }
@@ -76,10 +79,11 @@ func (r *Room) View() View {
 	for _, p := range r.participants {
 		_, voted := r.round.votes[p.id]
 		v.Participants = append(v.Participants, ParticipantView{
-			ID:    p.id,
-			Name:  p.name,
-			Away:  p.away,
-			Voted: voted,
+			ID:      p.id,
+			Name:    p.name,
+			Away:    p.away,
+			Visitor: p.visitor,
+			Voted:   voted,
 		})
 	}
 

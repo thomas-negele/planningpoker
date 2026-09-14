@@ -72,23 +72,24 @@
   // Read the stored preference even when the seat cookie skips the join prompt.
   let rememberingName = $state(nameIsRemembered());
 
-  function seat(name: string, remember: boolean) {
+  function seat(name: string, remember: boolean, visitor: boolean) {
     // The prompt handles the cookie; retain its choice for subsequent renames.
     rememberingName = remember;
     connection.dismissRefusal();
-    connection.seat(name);
+    connection.seat(name, visitor);
   }
 
   let editingName = $state(false);
 
-  function saveName(name: string, remember: boolean) {
+  function saveName(name: string, remember: boolean, visitor: boolean) {
     editingName = false;
     rememberingName = remember;
     // Saving can opt in; opting out already deleted the cookie in the dialog.
     if (remember) rememberName(name);
-    if (name === myName) return;
+    if (name === myName && visitor === amVisitor) return;
     connection.dismissRefusal();
-    connection.rename(name);
+    // Name and mode travel together, so a name the server refuses leaves both alone.
+    connection.rename(name, visitor);
   }
 
   function forgetMyName() {
@@ -98,6 +99,14 @@
 
   const myName = $derived(
     room?.participants.find((p) => p.id === connection.you)?.name ?? '',
+  );
+
+  const amVisitor = $derived(connection.amVisitor);
+
+  // Nobody present can vote: the round is not waiting for anything, and saying so is
+  // more useful than a "waiting for votes" that will never end.
+  const noVoters = $derived(
+    participants.every((participant) => participant.away || participant.visitor),
   );
 
   const deckLocked = $derived(
@@ -206,7 +215,9 @@
               <Results results={room.results} deck={room.deck} />
             {:else}
               <p class="status">
-                {#if room.everyonePresentHasVoted}
+                {#if noVoters}
+                  No voters this round
+                {:else if room.everyonePresentHasVoted}
                   Everyone has voted.
                 {:else}
                   Waiting for votes…
@@ -255,15 +266,21 @@
       </p>
     {/if}
 
-    <Deck
-      deck={room.deck}
-      played={myCard}
-      disabled={!connection.canAct || room.revealed}
-      onplay={(card) => {
-        connection.dismissRefusal();
-        connection.vote(card);
-      }}
-    />
+    <!-- A visitor is offered no cards at all; the server refuses their votes anyway.
+         The deck's place keeps a short label rather than becoming a blank strip. -->
+    {#if amVisitor}
+      <footer class="visiting">Visitor mode</footer>
+    {:else}
+      <Deck
+        deck={room.deck}
+        played={myCard}
+        disabled={!connection.canAct || room.revealed}
+        onplay={(card) => {
+          connection.dismissRefusal();
+          connection.vote(card);
+        }}
+      />
+    {/if}
     <ThrowLayer {connection} />
   </div>
 
@@ -271,6 +288,7 @@
     <NameDialog
       name={myName}
       remember={rememberingName}
+      visitor={amVisitor}
       onsave={saveName}
       onforget={forgetMyName}
       oncancel={() => (editingName = false)}
@@ -444,6 +462,20 @@
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  /* Stands where the deck stands for everybody else, with the deck's own placement,
+     so the table keeps its position when somebody changes mode. */
+  .visiting {
+    position: sticky;
+    bottom: 0;
+    padding: 1rem 1rem 1.25rem;
+    background: var(--deck-veil);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
   }
 
   .notice {

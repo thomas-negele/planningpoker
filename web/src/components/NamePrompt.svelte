@@ -11,6 +11,7 @@
   } from '../lib/name';
   import type { Participant } from '../lib/protocol';
   import InfoControl from './InfoControl.svelte';
+  import VisitorModeField from './VisitorModeField.svelte';
 
   // Joining requires confirmation. Name storage is optional and can also be changed
   // from the table. autocomplete=off requests that the browser avoid saving its own
@@ -20,13 +21,17 @@
     participants: Participant[];
     refusal: string | null;
     disabled: boolean;
-    onseat: (name: string, remember: boolean) => void;
+    onseat: (name: string, remember: boolean, visitor: boolean) => void;
   }
 
   let { participants, refusal, disabled, onseat }: Props = $props();
 
   let name = $state(rememberedName());
   let remember = $state(nameIsRemembered());
+
+  // Visitor mode belongs to the seat about to be taken, so it starts unticked even
+  // for somebody whose name is remembered from an earlier game.
+  let visitor = $state(false);
 
   // Delete immediately, even if the form is never submitted.
   function rememberChanged(event: Event) {
@@ -40,7 +45,7 @@
     // Reject an empty field locally; display other validation errors from the server.
     if (trimmed === '') return;
     if (remember) rememberName(trimmed);
-    onseat(trimmed, remember);
+    onseat(trimmed, remember, visitor);
   }
 </script>
 
@@ -85,6 +90,8 @@
         />
       </span>
     </div>
+
+    <VisitorModeField bind:checked={visitor} idPrefix="join" />
 
     <button class="primary" type="submit" disabled={disabled || name.trim() === ''}>
       Take a seat

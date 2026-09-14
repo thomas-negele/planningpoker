@@ -11,7 +11,7 @@ intent is refused, and how several connections belonging to one person behave.
 ### Requirement: The server sends whole snapshots of the room, never partial updates
 
 After any change to a room's game state, the server SHALL send every connection to that room a complete snapshot
-of the room's state, rather than a description of what changed.
+of the room's state, including each participant's visitor mode, rather than a description of what changed.
 
 A snapshot is small — a handful of participants and their votes — and sending the whole thing makes
 a reconnecting client correct by construction, with no replay of missed events and no possibility of
@@ -32,7 +32,7 @@ one.
 
 #### Scenario: Every change reaches everyone
 
-- **WHEN** any participant takes a seat, votes, reveals, renames themselves or starts a new round
+- **WHEN** any participant takes a seat, votes, reveals, renames themselves, changes visitor mode or starts a new round
 - **THEN** every connection to that room receives a fresh snapshot reflecting it
 
 #### Scenario: A snapshot stands on its own
@@ -50,6 +50,11 @@ that snapshot has been written.
 - **WHEN** a browser connects while other participants are throwing objects
 - **THEN** it receives a complete snapshot before any throw event, and later snapshots remain
   sufficient to render the game without any earlier events
+
+#### Scenario: Visitor mode is part of the snapshot
+
+- **WHEN** a participant changes visitor mode
+- **THEN** every connection receives a complete snapshot showing the new mode and any change to hidden vote status
 
 ### Requirement: A hidden vote never crosses the network
 
@@ -74,8 +79,8 @@ rules give it and MUST NOT reach past them for state to include.
 
 ### Requirement: A participant sends intents and the server decides
 
-A connected browser SHALL be able to send exactly these intents: take a seat under a name, play a
-card, reveal the round, start a new round, select a supported deck, change its name, and throw one
+A connected browser SHALL be able to send exactly these intents: take a seat under a name and visitor-mode choice, play a
+card, reveal the round, start a new round, select a supported deck, change its name and/or visitor mode, and throw one
 of the supported objects at another present participant. Every rule about whether an intent is
 allowed lives on the server; the client may hide an action it believes is unavailable, but hiding it
 is never what enforces it.
@@ -106,6 +111,11 @@ A client that sends nonsense affects nobody else.
 - **WHEN** a client constructs a throw request that the interface would not offer
 - **THEN** the server still validates the actual seated sender, object and target, applies the
   throw allowances, and never trusts client-supplied identity or animation coordinates
+
+#### Scenario: A visitor vote is refused by the server
+
+- **WHEN** a visitor sends a vote intent directly, bypassing the browser controls
+- **THEN** the server refuses it with a visitor-mode reason and broadcasts no changed vote
 
 ### Requirement: A refused intent is answered with a reason the client can act on
 

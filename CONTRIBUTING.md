@@ -6,8 +6,13 @@ Use [OpenSpec](https://github.com/Fission-AI/OpenSpec) for behaviour changes:
 
 1. Write a proposal, delta specifications and tasks. Add a design document when
    implementation decisions need explanation.
-2. Implement the agreed change and run the relevant checks.
-3. Record verification results, merge the delta into the main specs and archive the change.
+2. For each functional change, propose a major, minor or patch increase. The user
+   chooses the step. Before merging into `main`, apply that choice in `web/` with
+   `npm version <major|minor|patch> --no-git-tag-version` and check that both
+   `package.json` and `package-lock.json` contain the new version. Rebuilding the
+   same source does not increase it again. Documentation-only changes need no bump.
+3. Implement the agreed change and run the relevant checks.
+4. Record verification results, merge the delta into the main specs and archive the change.
 
 Documentation and comment-only corrections do not require a behaviour change.
 

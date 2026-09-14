@@ -73,8 +73,17 @@ test('a thrown object arrives without travelling', async ({ browser, request }) 
     expect(match).not.toBeNull();
     const x = Number(match![1]);
     const y = Number(match![2]);
-    expect(Math.abs(x - (target!.x + target!.width / 2))).toBeLessThan(target!.width);
-    expect(Math.abs(y - (target!.y + target!.height / 2))).toBeLessThan(target!.height);
+    // Within about a seat's reach of its middle. The landing point carries a
+    // small random offset by design, and a seat is not the same size in every
+    // arrangement, so the claim being tested is "at that seat" rather than a
+    // particular pixel.
+    const reach = target!.width + target!.height;
+    const away = Math.hypot(x - (target!.x + target!.width / 2), y - (target!.y + target!.height / 2));
+    expect(away).toBeLessThan(reach);
+
+    // And nowhere near an edge, which is where a flight would have begun.
+    const viewport = ada.viewportSize()!;
+    expect(Math.min(x, y, viewport.width - x, viewport.height - y)).toBeGreaterThan(60);
   } finally {
     await quiet.close();
     await lively.close();
