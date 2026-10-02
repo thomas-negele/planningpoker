@@ -15,8 +15,8 @@ card.](docs/revealed-round.png)
 - Votes stay hidden until a participant reveals them. Results show counts per card.
 - Any seated participant can reveal or start a new round.
 - Hover or tap another present participant to throw a paper ball, paper plane, flower or heart,
-  and a pile of poo where the operator has switched it on. These playful reactions fly in from
-  either side, settle briefly and disappear; standard keyboard navigation remains available
+  and one cheekier object where the operator has switched it on. These playful reactions fly in
+  from either side, settle briefly and disappear; standard keyboard navigation remains available
   without adding shortcuts or hints to the pointer interface.
 - No accounts or passwords: anyone who knows or guesses a room URL can join.
 - Custom room IDs: 5–64 ASCII letters, digits, hyphens or underscores, e.g. `/g/team-alpha`.
@@ -78,24 +78,13 @@ Application defaults:
 | Connections per room | `40` |
 | Participants per room, including away seats | `20` |
 | Messages per second per connection | `10`, burst `20` |
-| Pile of poo among the throwable objects | off |
+| Cheekier fifth throwable object | off |
 
 Participant throws have fixed additional ceilings: 3 accepted throws per participant and 12 per
 room in any rolling second. These values are product rules rather than environment settings.
 Excess throws are quietly discarded instead of queued, and the browser reduces their effective
 rate when the configured connection message rate is low so voting and other game actions retain
 capacity.
-
-The pile of poo is off by default. Setting `PLANNINGPOKER_POO_THROWS` to `true` adds it to every
-room's throw picker, for example with this line in an `.env` file beside `compose.yaml`:
-
-```sh
-PLANNINGPOKER_POO_THROWS=true
-```
-
-Only `true` and `false` are accepted; any other value stops the process with a message naming it.
-The other throwable objects do not depend on this switch. It is read at startup, so changing it
-needs a restart, which ends running games.
 
 Container defaults: 256 MiB memory, 1 CPU, 128 PIDs and three 10 MiB log files.
 These are starting budgets; capacity increases may require more resources.
