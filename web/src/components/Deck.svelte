@@ -53,6 +53,8 @@
   .card {
     width: 3.4rem;
     height: 4.8rem;
+    /* The global button padding leaves too little width on a card; overflowing values drift right. */
+    padding: 0;
     border-radius: var(--radius-card);
     border: 1px solid var(--border);
     background: var(--surface-raised);
