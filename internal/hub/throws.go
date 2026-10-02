@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"time"
 
@@ -18,6 +19,9 @@ const (
 	ThrowPaperBall  ThrowObject = "paper-ball"
 	ThrowPaperPlane ThrowObject = "paper-plane"
 	ThrowFlowers    ThrowObject = "flowers"
+	ThrowHeart      ThrowObject = "heart"
+	// ThrowPoo is accepted only when Limits.PooThrows is set.
+	ThrowPoo ThrowObject = "poo"
 
 	// Throw limits are fixed product rules. They sit below the configurable raw
 	// connection limit and excess effects are silently discarded.
@@ -44,13 +48,14 @@ type ThrowEvent struct {
 	AcceptedAt time.Time
 }
 
-func validThrowObject(object ThrowObject) bool {
-	switch object {
-	case ThrowPaperBall, ThrowPaperPlane, ThrowFlowers:
-		return true
-	default:
-		return false
+// ThrowObjects lists the objects a server with these limits accepts, in the
+// order the browser offers them.
+func (l Limits) ThrowObjects() []ThrowObject {
+	objects := []ThrowObject{ThrowPaperBall, ThrowPaperPlane, ThrowFlowers, ThrowHeart}
+	if l.PooThrows {
+		objects = append(objects, ThrowPoo)
 	}
+	return objects
 }
 
 type throwCommand struct {
@@ -65,7 +70,7 @@ func (c throwCommand) apply(s *roomState) {
 		s.refuse(c.conn, game.ErrUnknownParticipant)
 		return
 	}
-	if !validThrowObject(c.object) {
+	if !slices.Contains(s.throwObjects, c.object) {
 		s.refuse(c.conn, ErrUnknownThrowObject)
 		return
 	}

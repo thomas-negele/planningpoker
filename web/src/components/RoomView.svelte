@@ -243,6 +243,7 @@
               canRename={connection.canAct}
               onedit={() => (editingName = true)}
               canThrow={connection.canThrow}
+              throwObjects={connection.throwObjects}
               onthrow={(object) => connection.throwAt(participant.id, object)}
             />
           {/each}

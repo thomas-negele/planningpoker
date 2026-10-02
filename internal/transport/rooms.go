@@ -40,6 +40,9 @@ type RoomHandlers struct {
 	// Each connection receives its own rate allowance.
 	rate RateLimit
 
+	// throwObjects is fixed at startup and advertised in every throw policy.
+	throwObjects []string
+
 	// Injectable clock for rate-limit tests.
 	now func() time.Time
 
@@ -76,14 +79,24 @@ const (
 // rate bounds how fast any one connection may send.
 func NewRoomHandlers(manager *hub.Manager, random io.Reader, rate RateLimit) *RoomHandlers {
 	return &RoomHandlers{
-		manager:   manager,
-		random:    random,
-		rate:      rate,
-		now:       time.Now,
-		heartbeat: defaultHeartbeat,
-		deadline:  defaultDeadline,
-		live:      make(map[*websocket.Conn]struct{}),
+		manager:      manager,
+		random:       random,
+		rate:         rate,
+		throwObjects: throwObjectNames(manager.ThrowObjects()),
+		now:          time.Now,
+		heartbeat:    defaultHeartbeat,
+		deadline:     defaultDeadline,
+		live:         make(map[*websocket.Conn]struct{}),
 	}
+}
+
+// throwObjectNames converts the accepted objects once for every throw policy.
+func throwObjectNames(objects []hub.ThrowObject) []string {
+	names := make([]string, len(objects))
+	for i, object := range objects {
+		names[i] = string(object)
+	}
+	return names
 }
 
 // register records an open socket, reporting false if shutdown has already begun —
@@ -361,7 +374,7 @@ func (h *RoomHandlers) serve(ctx context.Context, conn *websocket.Conn, room *hu
 	go func() {
 		defer writing.Done()
 		defer cancel()
-		writeUpdates(ctx, conn, hubConn, h.rate, h.now, h.heartbeat, h.deadline)
+		writeUpdates(ctx, conn, hubConn, h.rate, h.throwObjects, h.now, h.heartbeat, h.deadline)
 	}()
 
 	// A per-connection allowance lets participants act independently.
@@ -381,6 +394,7 @@ func writeUpdates(
 	conn *websocket.Conn,
 	hubConn *hub.Conn,
 	rate RateLimit,
+	objects []string,
 	now func() time.Time,
 	heartbeat, deadline time.Duration,
 ) {
@@ -391,6 +405,7 @@ func writeUpdates(
 		RoomPerSecond:        hub.ThrowsPerRoom,
 		MessagePerSecond:     max(rate.PerSecond, 1),
 		MessageBurst:         max(rate.Burst, 1),
+		Objects:              objects,
 	}
 	if now == nil {
 		now = time.Now

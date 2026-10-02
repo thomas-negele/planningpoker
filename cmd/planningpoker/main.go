@@ -50,6 +50,7 @@ func run() error {
 		Rooms:               cfg.MaxRooms,
 		ConnectionsPerRoom:  cfg.MaxConnectionsPerRoom,
 		ParticipantsPerRoom: cfg.MaxParticipantsPerRoom,
+		PooThrows:           cfg.PooThrows,
 	})
 	rooms := transport.NewRoomHandlers(manager, transport.DefaultRandom, transport.RateLimit{
 		PerSecond: cfg.MessageRate,

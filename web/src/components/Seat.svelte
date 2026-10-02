@@ -20,6 +20,8 @@
     canRename: boolean;
     onedit: () => void;
     canThrow: boolean;
+    /** The objects the server accepts, already in picker order. */
+    throwObjects: ThrowObject[];
     onthrow: (object: ThrowObject) => void;
   }
 
@@ -36,8 +38,18 @@
     canRename,
     onedit,
     canThrow,
+    throwObjects,
     onthrow,
   }: Props = $props();
+
+  // Accessible names complete "Throw … at <name>"; sizes balance the drawings' weight.
+  const throwChoices: Record<ThrowObject, { label: string; size: number }> = {
+    'paper-ball': { label: 'paper ball', size: 24 },
+    'paper-plane': { label: 'paper plane', size: 25 },
+    flowers: { label: 'a flower', size: 25 },
+    heart: { label: 'a heart', size: 24 },
+    poo: { label: 'a pile of poo', size: 25 },
+  };
 
   // The parent owns the rename dialog and storage preference.
   let open = $state(false);
@@ -100,7 +112,9 @@
 >
   <!-- A visitor holds no card slot: where a card would be there is a plain label
        instead, unless a card of theirs was revealed before they switched mode. -->
-  <div class="card-slot">
+  <!-- On the narrow list, thrown objects rest between the end of the name
+       (data-landing-after) and the row's controls (data-landing-before). -->
+  <div class="card-slot" data-landing-before>
     {#if revealed && card}
       <span class="card face-up">{card}</span>
     {:else if participant.visitor}
@@ -114,7 +128,7 @@
     {/if}
   </div>
 
-  <div class="who">
+  <div class="who" data-landing-after>
     {#if isYou && canRename}
       <button
         class="name editable"
@@ -147,8 +161,9 @@
     {/if}
   </div>
 
-  {#if !isYou && !participant.away}
-    <div class="throw-control" class:open>
+  <!-- Nothing to offer until the server's throw policy has named its objects. -->
+  {#if !isYou && !participant.away && throwObjects.length > 0}
+    <div class="throw-control" class:open class:opens-left={edgeX > 0.5} data-landing-before>
       <button
         bind:this={trigger}
         class="throw-trigger"
@@ -160,15 +175,14 @@
         <ThrowIcon object="paper-ball" size={18} />
       </button>
       <div class="throw-picker" role="group" aria-label={`Throw at ${participant.name}`}>
-        <button aria-label={`Throw paper ball at ${participant.name}`} onclick={() => choose('paper-ball')}>
-          <ThrowIcon object="paper-ball" size={24} />
-        </button>
-        <button aria-label={`Throw paper plane at ${participant.name}`} onclick={() => choose('paper-plane')}>
-          <ThrowIcon object="paper-plane" size={25} />
-        </button>
-        <button aria-label={`Throw a flower at ${participant.name}`} onclick={() => choose('flowers')}>
-          <ThrowIcon object="flowers" size={25} />
-        </button>
+        {#each throwObjects as object (object)}
+          <button
+            aria-label={`Throw ${throwChoices[object].label} at ${participant.name}`}
+            onclick={() => choose(object)}
+          >
+            <ThrowIcon {object} size={throwChoices[object].size} />
+          </button>
+        {/each}
       </div>
     </div>
   {/if}
@@ -364,6 +378,21 @@
     border: 1px solid var(--border);
     border-radius: 999px;
     padding: 0 0.35rem;
+  }
+
+  /* On the right of the table a picker centred on the trigger would cross the
+     viewport edge, so it ends at the seat's right edge and opens towards the centre. */
+  @media (min-width: 58rem) {
+    .opens-left .throw-picker {
+      left: auto;
+      right: 1.6rem;
+      transform: translate(0, 0.25rem) scale(0.96);
+    }
+
+    .seat:hover .opens-left .throw-picker,
+    .throw-control.opens-left.open .throw-picker {
+      transform: translate(0, 0) scale(1);
+    }
   }
 
   /* Use a horizontal seat row in the narrow-screen list. */

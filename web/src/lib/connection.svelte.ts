@@ -15,6 +15,7 @@ import {
 } from './protocol';
 import type { DeckName } from './decks';
 import { ThrowPacer } from './throw-pacing';
+import { isThrowObject, offeredThrowObjects } from './throw-objects';
 
 export type ConnectionStatus =
   /** A socket is being opened for the first time. */
@@ -69,6 +70,9 @@ export class RoomConnection {
    * This is not an acknowledgement of a specific vote.
    */
   myCard = $state<string | null>(null);
+
+  /** The objects this server accepts, from its throw policy. Empty until known. */
+  throwObjects = $state<ThrowObject[]>([]);
 
   readonly roomId: string;
 
@@ -244,7 +248,14 @@ export class RoomConnection {
 
       this.room = message.room;
       if (message.you !== '') this.you = message.you;
-      if (message.throwPolicy && !this.#pacer.ready) this.#pacer.configure(message.throwPolicy);
+      if (message.throwPolicy && !this.#pacer.ready) {
+        // Without a usable object list there is nothing to offer, so throwing stays off.
+        const objects = offeredThrowObjects(message.throwPolicy.objects);
+        if (objects !== null) {
+          this.throwObjects = objects;
+          this.#pacer.configure(message.throwPolicy);
+        }
+      }
       this.#reconcileMyCard();
       return;
     }
@@ -255,9 +266,7 @@ export class RoomConnection {
         message.ageMs < 1200 &&
         Number.isInteger(message.seed) &&
         message.seed >= 0 &&
-        (message.object === 'paper-ball' ||
-          message.object === 'paper-plane' ||
-          message.object === 'flowers')
+        isThrowObject(message.object)
       ) {
         for (const listener of this.#throwListeners) listener(message);
       }

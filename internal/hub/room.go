@@ -43,6 +43,9 @@ type roomState struct {
 	// maxConnections counts sockets, including multiple tabs for one seat.
 	maxConnections int
 
+	// throwObjects is the same list the browser is offered, so the two cannot drift.
+	throwObjects []ThrowObject
+
 	participantThrows map[game.ParticipantID][]time.Time
 	roomThrows        []time.Time
 	throwSequence     uint64
@@ -89,6 +92,7 @@ func startRoom(g *game.Room, id game.RoomID, clock Clock, random io.Reader, limi
 		seats:             make(map[string]game.ParticipantID),
 		lastOccupied:      clock.Now(),
 		maxConnections:    limits.ConnectionsPerRoom,
+		throwObjects:      limits.ThrowObjects(),
 		participantThrows: make(map[game.ParticipantID][]time.Time),
 	}
 

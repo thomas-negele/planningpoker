@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"io"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -120,8 +121,41 @@ func TestThrowFanoutIncludesEveryCurrentTabOnlyInItsRoom(t *testing.T) {
 	assertNoThrow(t, outsider)
 }
 
-func TestAllThrowObjectsWorkBeforeVotingAfterVotingAndAfterReveal(t *testing.T) {
-	manager, clock := newTestManager(t)
+// newPooTestManager is newTestManager with the operator switch for the pile of
+// poo turned on.
+func newPooTestManager(t *testing.T) (*Manager, *fakeClock) {
+	t.Helper()
+	clock := newFakeClock()
+	limits := testLimits
+	limits.PooThrows = true
+	return NewManager(clock, rand.Reader, testGrace, limits), clock
+}
+
+func TestThrowObjectsFollowTheSwitch(t *testing.T) {
+	off := []ThrowObject{ThrowPaperBall, ThrowPaperPlane, ThrowFlowers, ThrowHeart}
+	on := append(append([]ThrowObject(nil), off...), ThrowPoo)
+	for _, tc := range []struct {
+		name   string
+		limits Limits
+		want   []ThrowObject
+	}{
+		{"off by default", testLimits, off},
+		{"on", Limits{Rooms: 1, ConnectionsPerRoom: 1, ParticipantsPerRoom: 1, PooThrows: true}, on},
+		// NewManager rebuilds invalid limits; the switch must survive that.
+		{"on with clamped limits", Limits{PooThrows: true}, on},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manager := NewManager(newFakeClock(), rand.Reader, testGrace, tc.limits)
+			defer manager.Close()
+			if got := manager.ThrowObjects(); !slices.Equal(got, tc.want) {
+				t.Errorf("ThrowObjects() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPooIsAnUnknownObjectWhileSwitchedOff(t *testing.T) {
+	manager, _ := newTestManager(t)
 	defer manager.Close()
 	room, _ := manager.Create()
 
@@ -130,7 +164,37 @@ func TestAllThrowObjectsWorkBeforeVotingAfterVotingAndAfterReveal(t *testing.T) 
 	drain(actor)
 	drain(target)
 
-	objects := []ThrowObject{ThrowPaperBall, ThrowPaperPlane, ThrowFlowers}
+	if !room.Throw(actor, targetID, ThrowPoo) {
+		t.Fatal("request was not admitted for validation")
+	}
+	if err := nextRefusal(t, actor); !errors.Is(err, ErrUnknownThrowObject) {
+		t.Errorf("refusal = %v, want ErrUnknownThrowObject", err)
+	}
+	assertNoThrow(t, actor)
+	assertNoThrow(t, target)
+	assertNoUpdate(t, target)
+
+	// The heart does not depend on the switch.
+	room.Throw(actor, targetID, ThrowHeart)
+	if got := nextThrow(t, target).Object; got != ThrowHeart {
+		t.Errorf("target saw %q, want %q", got, ThrowHeart)
+	}
+}
+
+func TestAllThrowObjectsWorkBeforeVotingAfterVotingAndAfterReveal(t *testing.T) {
+	manager, clock := newPooTestManager(t)
+	defer manager.Close()
+	room, _ := manager.Create()
+
+	actor, _ := seated(t, room, "token-a", "Ada")
+	target, targetID := seated(t, room, "token-b", "Grace")
+	drain(actor)
+	drain(target)
+
+	objects := manager.ThrowObjects()
+	if len(objects) != 5 {
+		t.Fatalf("ThrowObjects() = %v, want all five", objects)
+	}
 	assertStage := func(stage string) {
 		t.Helper()
 		for _, object := range objects {
@@ -145,8 +209,9 @@ func TestAllThrowObjectsWorkBeforeVotingAfterVotingAndAfterReveal(t *testing.T) 
 			}
 			assertNoUpdate(t, actor)
 			assertNoUpdate(t, target)
+			// Five objects exceed one second's participant allowance.
+			clock.Advance(time.Second)
 		}
-		clock.Advance(time.Second)
 	}
 
 	assertStage("before voting")
@@ -211,6 +276,111 @@ func TestInvalidThrowsAreRefusedPrivately(t *testing.T) {
 	}
 	if err := nextRefusal(t, actor); !errors.Is(err, ErrThrowTargetAbsent) {
 		t.Errorf("away-target refusal = %v, want ErrThrowTargetAbsent", err)
+	}
+}
+
+func TestNewObjectsAreRefusedLikeTheOthers(t *testing.T) {
+	manager, _ := newPooTestManager(t)
+	defer manager.Close()
+	room, _ := manager.Create()
+
+	unseated := attach(t, room, "unseated")
+	actor, actorID := seated(t, room, "token-a", "Ada")
+	target, targetID := seated(t, room, "token-b", "Grace")
+	drain(unseated)
+	drain(actor)
+	drain(target)
+
+	for _, object := range []ThrowObject{ThrowHeart, ThrowPoo} {
+		for _, test := range []struct {
+			name   string
+			conn   *Conn
+			target game.ParticipantID
+			want   error
+		}{
+			{"unseated sender", unseated, targetID, game.ErrUnknownParticipant},
+			{"self target", actor, actorID, ErrThrowAtSelf},
+			{"unknown target", actor, "elsewhere", ErrThrowTargetAbsent},
+		} {
+			t.Run(string(object)+" "+test.name, func(t *testing.T) {
+				if !room.Throw(test.conn, test.target, object) {
+					t.Fatal("request was not admitted for validation")
+				}
+				if err := nextRefusal(t, test.conn); !errors.Is(err, test.want) {
+					t.Errorf("refusal = %v, want %v", err, test.want)
+				}
+				assertNoThrow(t, actor)
+				assertNoThrow(t, target)
+			})
+		}
+	}
+
+	room.Detach(target)
+	settle(t, room)
+	drain(actor)
+	for _, object := range []ThrowObject{ThrowHeart, ThrowPoo} {
+		room.Throw(actor, targetID, object)
+		if err := nextRefusal(t, actor); !errors.Is(err, ErrThrowTargetAbsent) {
+			t.Errorf("away-target refusal for %q = %v, want ErrThrowTargetAbsent", object, err)
+		}
+	}
+}
+
+func TestNewObjectsShareTheParticipantAllowance(t *testing.T) {
+	manager, clock := newPooTestManager(t)
+	defer manager.Close()
+	room, _ := manager.Create()
+
+	actor, _ := seated(t, room, "token-a", "Ada")
+	target, targetID := seated(t, room, "token-b", "Grace")
+	drain(actor)
+	drain(target)
+
+	for _, object := range []ThrowObject{ThrowPaperBall, ThrowHeart, ThrowPoo} {
+		room.Throw(actor, targetID, object)
+		if got := nextThrow(t, target).Object; got != object {
+			t.Fatalf("target saw %q, want %q", got, object)
+		}
+	}
+	// A fourth object of any kind exceeds the one participant allowance.
+	for _, object := range []ThrowObject{ThrowHeart, ThrowPoo} {
+		room.Throw(actor, targetID, object)
+		settle(t, room)
+		assertNoThrow(t, target)
+	}
+
+	clock.Advance(time.Second)
+	room.Throw(actor, targetID, ThrowPoo)
+	if got := nextThrow(t, target).Object; got != ThrowPoo {
+		t.Errorf("after the window target saw %q, want %q", got, ThrowPoo)
+	}
+}
+
+func TestNewObjectsShareTheRoomAllowance(t *testing.T) {
+	manager, _ := newPooTestManager(t)
+	defer manager.Close()
+	room, _ := manager.Create()
+
+	target, targetID := seated(t, room, "target", "Target")
+	actors := make([]*Conn, 0, 5)
+	for i := 0; i < 5; i++ {
+		actor, _ := seated(t, room, string(rune('a'+i)), "Actor")
+		actors = append(actors, actor)
+	}
+	for _, conn := range append([]*Conn{target}, actors...) {
+		drain(conn)
+	}
+
+	objects := []ThrowObject{ThrowPaperBall, ThrowHeart, ThrowPoo, ThrowFlowers}
+	for i := 0; i < ThrowsPerRoom; i++ {
+		room.Throw(actors[i%len(actors)], targetID, objects[i%len(objects)])
+		nextThrow(t, target)
+	}
+	// Actor 4 has thrown only twice, so only the room allowance can stop these.
+	for _, object := range []ThrowObject{ThrowHeart, ThrowPoo} {
+		room.Throw(actors[4], targetID, object)
+		settle(t, room)
+		assertNoThrow(t, target)
 	}
 }
 

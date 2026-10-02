@@ -15,8 +15,9 @@ type SystemClock struct{}
 
 func (SystemClock) Now() time.Time { return time.Now() }
 
-// Limits bounds room, connection and seat counts. Startup configuration requires
-// positive values; NewManager clamps invalid values defensively.
+// Limits holds what one server permits: room, connection and seat counts, and
+// whether the pile of poo may be thrown. Startup configuration requires positive
+// counts; NewManager clamps invalid values defensively.
 type Limits struct {
 	// Rooms limits rooms held by the manager.
 	Rooms int
@@ -26,6 +27,10 @@ type Limits struct {
 
 	// ParticipantsPerRoom counts all seats, including away participants.
 	ParticipantsPerRoom int
+
+	// PooThrows adds ThrowPoo to the objects every room accepts. The zero value
+	// leaves it out.
+	PooThrows bool
 }
 
 func (l Limits) valid() bool {
