@@ -10,6 +10,7 @@ import {
   computeThrowFrame,
   createFlight,
   poseAt,
+  restingPoint,
   settleForReducedMotion,
   type ActiveEffect,
 } from './throw-effects.ts';
@@ -178,4 +179,157 @@ test('one frame measures each resting target once and discards missing or expire
   });
   assert.deepEqual(afterSleep.active, []);
   assert.deepEqual(afterSleep.rendered, []);
+});
+
+const ALL_OBJECTS = ['paper-ball', 'paper-plane', 'flowers', 'heart', 'poo'] as const;
+
+// Samples the settling part of a flight, from impact up to the last moment before rest.
+function settling(flight: ReturnType<typeof createFlight>, steps = 200) {
+  const impactAge = flight.duration * flight.impactFraction;
+  return Array.from({ length: steps }, (_, i) =>
+    poseAt(flight, impactAge + ((flight.duration - impactAge) * i) / steps),
+  );
+}
+
+test('existing objects and every settled pose keep their normal size', () => {
+  for (const seed of [1, 7, 42, 99]) {
+    for (const object of ['paper-ball', 'paper-plane', 'flowers'] as const) {
+      const flight = createFlight(seed, object, viewport, target);
+      for (let age = 0; age < flight.duration; age += 10) {
+        const pose = poseAt(flight, age);
+        assert.equal(pose.scaleX, 1, `${object} at ${age}`);
+        assert.equal(pose.scaleY, 1, `${object} at ${age}`);
+      }
+    }
+    for (const object of ALL_OBJECTS) {
+      const flight = createFlight(seed, object, viewport, target);
+      for (const age of [flight.duration, flight.duration + REST_MS + FADE_MS / 2]) {
+        const pose = poseAt(flight, age);
+        assert.deepEqual([pose.scaleX, pose.scaleY], [1, 1], `${object} ${pose.phase}`);
+      }
+      for (const age of [0, 300, REST_MS + FADE_MS / 2]) {
+        const reduced = poseAt(flight, age, true);
+        assert.deepEqual([reduced.scaleX, reduced.scaleY], [1, 1], `${object} reduced`);
+        assert.equal(reduced.rotation, 0);
+      }
+    }
+  }
+});
+
+test('the new objects begin offscreen and stay within the existing flight bounds', () => {
+  for (const object of ['heart', 'poo'] as const) {
+    for (const seed of [1, 2, 3, 4, 5, 99]) {
+      const flight = createFlight(seed, object, viewport, target);
+      assert.ok(flight.start.x < -18 || flight.start.x > viewport.width + 18);
+      assert.ok(flight.duration >= MIN_FLIGHT_MS && flight.duration <= MAX_FLIGHT_MS);
+      assert.ok(Math.abs(flight.landingOffset.x) <= 84);
+      assert.ok(flight.landingOffset.y >= 14 && flight.landingOffset.y <= 35);
+      const end = poseAt(flight, flight.duration);
+      assert.equal(end.phase, 'rest');
+      assert.deepEqual({ x: end.x, y: end.y }, flight.landing);
+    }
+  }
+});
+
+test('the pile of poo squashes on impact, wobbles back and has settled before resting', () => {
+  for (const seed of [1, 7, 42, 99, 1234]) {
+    const flight = createFlight(seed, 'poo', viewport, target);
+    for (let age = 0; age < flight.duration * flight.impactFraction; age += 10) {
+      assert.equal(poseAt(flight, age).scaleY, 1, 'no squash before impact');
+    }
+    const poses = settling(flight);
+    assert.ok(poses[0].scaleY < 0.75 && poses[0].scaleX > 1.2, 'flattened and widened at impact');
+    // The wobble overshoots at least once: taller than normal for a moment.
+    assert.ok(poses.some((pose) => pose.scaleY > 1));
+    const last = poses[poses.length - 1];
+    assert.ok(Math.abs(last.scaleY - 1) < 0.001 && Math.abs(last.scaleX - 1) < 0.001);
+  }
+});
+
+test('the pile of poo slides less than the paper ball and sways instead of tumbling', () => {
+  const slide = (flight: ReturnType<typeof createFlight>) =>
+    Math.abs(flight.landing.x - flight.impact.x);
+  for (let seed = 0; seed < 40; seed++) {
+    const poo = createFlight(seed, 'poo', viewport, target);
+    const ball = createFlight(seed, 'paper-ball', viewport, target);
+    assert.ok(slide(poo) < slide(ball), `seed ${seed}`);
+    assert.ok(slide(poo) <= 6);
+    assert.ok(poo.turns === 0 && poo.sway > 0 && poo.sway <= 6);
+  }
+  const meanArc = (object: 'poo' | 'paper-ball') =>
+    Array.from({ length: 40 }, (_, seed) => createFlight(seed, object, viewport, target).arc)
+      .reduce((sum, arc) => sum + arc, 0) / 40;
+  assert.ok(meanArc('poo') < meanArc('paper-ball') * 0.7);
+});
+
+test('the heart pulses exactly once during settling and rests at its normal size', () => {
+  for (const seed of [1, 7, 42, 99, 1234]) {
+    const flight = createFlight(seed, 'heart', viewport, target);
+    const scales = settling(flight).map((pose) => pose.scaleX);
+    for (const pose of settling(flight)) assert.equal(pose.scaleX, pose.scaleY);
+    let maxima = 0;
+    for (let i = 1; i < scales.length - 1; i++) {
+      if (scales[i] > scales[i - 1] && scales[i] >= scales[i + 1]) maxima++;
+    }
+    assert.equal(maxima, 1);
+    assert.ok(Math.max(...scales) > 1.2);
+    // The swell fades continuously into the rest, where the size is exactly normal.
+    assert.ok(Math.abs(scales[scales.length - 1] - 1) < 0.01);
+    assert.equal(poseAt(flight, flight.duration).scaleX, 1);
+  }
+});
+
+test('repeated hearts and piles of poo still vary path, speed and resting point', () => {
+  for (const object of ['heart', 'poo'] as const) {
+    const flights = Array.from({ length: 20 }, (_, seed) => createFlight(seed, object, viewport, target));
+    assert.ok(flights.some((flight) => flight.start.x < 0));
+    assert.ok(flights.some((flight) => flight.start.x > viewport.width));
+    assert.ok(new Set(flights.map((flight) => flight.duration.toFixed(3))).size > 10);
+    assert.ok(new Set(flights.map((flight) => flight.arc.toFixed(2))).size > 10);
+    assert.ok(new Set(flights.map((flight) => flight.landingOffset.x.toFixed(2))).size > 15);
+  }
+});
+
+// The free space of a narrow-list row: from the end of the name to the row's controls.
+const row = { left: 120, right: 250, middle: 300 };
+
+test('in a narrow-list row every object rests inside the free space on the row\'s middle', () => {
+  for (const object of ALL_OBJECTS) {
+    for (let seed = 0; seed < 200; seed++) {
+      const flight = createFlight(seed, object, viewport, row);
+      for (const point of [flight.impact, flight.landing]) {
+        assert.equal(point.y, row.middle, `${object} seed ${seed}`);
+        // No object's drawn half-width is below 18 px, so its whole body stays in the row.
+        assert.ok(point.x >= row.left + 18 && point.x <= row.right - 18, `${object} seed ${seed}`);
+      }
+      const rest = poseAt(flight, flight.duration);
+      assert.deepEqual({ x: rest.x, y: rest.y }, flight.landing);
+    }
+  }
+});
+
+test('a row narrower than the object centres it without spreading', () => {
+  const tight = { left: 200, right: 230, middle: 300 };
+  for (const object of ALL_OBJECTS) {
+    for (const seed of [1, 7, 42, 99]) {
+      const flight = createFlight(seed, object, viewport, tight);
+      assert.deepEqual(flight.landing, { x: 215, y: 300 }, `${object} seed ${seed}`);
+    }
+  }
+});
+
+test('a resting object is refitted when the layout switches between table and list', () => {
+  const seat = { left: 440, right: 560, bottom: 420 };
+  const fromTable = createFlight(7, 'paper-ball', viewport, seat);
+  const inRow = restingPoint(row, 'paper-ball', fromTable.landingOffset);
+  assert.equal(inRow.y, row.middle);
+  assert.ok(inRow.x >= row.left + 18 && inRow.x <= row.right - 18);
+
+  const fromRow = createFlight(7, 'paper-ball', viewport, row);
+  const belowSeat = restingPoint(seat, 'paper-ball', fromRow.landingOffset);
+  assert.ok(belowSeat.y >= seat.bottom + 14, 'back below the seat, not on its edge');
+
+  // Within one layout the resting point is exactly where the flight landed.
+  assert.deepEqual(restingPoint(seat, 'paper-ball', fromTable.landingOffset), fromTable.landing);
+  assert.deepEqual(restingPoint(row, 'paper-ball', fromRow.landingOffset), fromRow.landing);
 });

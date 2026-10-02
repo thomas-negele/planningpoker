@@ -79,13 +79,14 @@ never black, white, grey, brown or a muted shade. The pile of poo SHALL resemble
 emoji: a brown, three-tiered swirl with a tip curling to one side, two eyes and a wide grin, drawn
 for this project rather than reproduced from any vendor's emoji artwork. Every received throw SHALL
 enter fully from outside the visible left or right edge, chosen randomly per event, and fly toward
-the target's actual displayed seat. It SHALL finish just in front of/below the seat without hiding
-its name, card or controls, remain there for 2 seconds, and fade out over 0.6 seconds before
-removal.
+the target's actual displayed seat. On the wide table it SHALL finish just in front of/below the
+seat; on the narrow participant list it SHALL finish within the target's own row, in the free space
+between the name and the row's controls. In both layouts it SHALL NOT hide the target's name, card
+or controls. It SHALL remain there for 2 seconds and fade out over 0.6 seconds before removal.
 
 Flight SHALL take approximately 0.6–1.2 seconds with bounded variation in duration, trajectory,
-rotation and impact offset. Impact positions SHALL vary visibly across a bounded area in front
-of/below the target instead of converging on one apparent magnetic point. Motion SHALL convey
+rotation and impact offset. Impact positions SHALL vary visibly across the target's landing area
+instead of converging on one apparent magnetic point. Motion SHALL convey
 gravity, momentum and a soft landing: the paper ball tumbles, bounces and rolls onward briefly;
 the paper plane glides nose-first and skids; the single flower rotates gently, lands softly and
 slides a shorter distance; the heart flies on a light arc, lands softly, slides a short distance
@@ -131,6 +132,15 @@ outside the viewport SHALL not cause automatic scrolling or a misplaced visible 
 - **WHEN** a heart lands
 - **THEN** it pulses exactly once during its settling and rests at its normal size
 
+#### Scenario: On the narrow list a throw stays in its target's row
+
+- **WHEN** a participant on the narrow list throws any object at the participant in the row above
+  or below their own
+- **THEN** the object comes to rest inside the target's row, between the end of the name and the
+  row's controls, and never in a neighbouring row
+- **AND** a long name narrows that area without the object covering the name, the throw control or
+  the card
+
 #### Scenario: Landed objects disappear on schedule
 
 - **WHEN** an object has settled
@@ -159,8 +169,8 @@ replay expired animations.
 #### Scenario: Reduced motion keeps the reaction visible
 
 - **WHEN** a throw arrives with reduced motion enabled
-- **THEN** its object appears directly below the target, rests for 2 seconds and fades over
-  0.6 seconds without a flight
+- **THEN** its object appears directly at its resting position by the target, rests for 2 seconds
+  and fades over 0.6 seconds without a flight
 
 #### Scenario: Reduced motion shows the new objects at rest
 

@@ -1,17 +1,21 @@
 // Wire types and refusal codes mirror internal/transport/protocol.go.
 
 import type { DeckName } from './decks';
+import type { ThrowObject } from './throw-objects';
 
 /** A card is whatever the room's deck offers. The page never assumes which. */
 export type Card = string;
 
-export type ThrowObject = 'paper-ball' | 'paper-plane' | 'flowers';
+/** Defined beside the list of drawable objects, so the two cannot drift apart. */
+export type { ThrowObject };
 
 export interface ThrowPolicy {
   participantPerSecond: number;
   roomPerSecond: number;
   messagePerSecond: number;
   messageBurst: number;
+  /** What this server accepts. Unchecked wire data; see offeredThrowObjects. */
+  objects: string[];
 }
 
 export interface Deck {

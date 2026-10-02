@@ -268,6 +268,44 @@ func TestLegalDirectoryIsTakenVerbatim(t *testing.T) {
 	}
 }
 
+func TestPooThrowsAreOffUnlessSwitchedOn(t *testing.T) {
+	for _, tc := range []struct {
+		pairs map[string]string
+		want  bool
+	}{
+		{map[string]string{}, false},
+		{map[string]string{envPooThrows: ""}, false},
+		{map[string]string{envPooThrows: "false"}, false},
+		{map[string]string{envPooThrows: "true"}, true},
+	} {
+		cfg, err := loadConfig(env(tc.pairs))
+		if err != nil {
+			t.Fatalf("loadConfig(%v) returned an error: %v", tc.pairs, err)
+		}
+		if cfg.PooThrows != tc.want {
+			t.Errorf("loadConfig(%v).PooThrows = %v, want %v", tc.pairs, cfg.PooThrows, tc.want)
+		}
+	}
+}
+
+func TestUnclearPooThrowsValueIsAnErrorNamingVariableAndValue(t *testing.T) {
+	// Only the two values compose.yaml documents are accepted, so no value works
+	// without being written down anywhere.
+	for _, value := range []string{"yes", "1", "TRUE", " true", "on", "False"} {
+		_, err := loadConfig(env(map[string]string{envPooThrows: value}))
+		if err == nil {
+			t.Errorf("loadConfig with %s=%q returned no error", envPooThrows, value)
+			continue
+		}
+		if !strings.Contains(err.Error(), envPooThrows) {
+			t.Errorf("error for %q does not name the variable: %v", value, err)
+		}
+		if !strings.Contains(err.Error(), strconv.Quote(value)) {
+			t.Errorf("error for %q does not quote the offending value: %v", value, err)
+		}
+	}
+}
+
 func TestMessageBurstIsAboveTheSustainedRate(t *testing.T) {
 	// The burst exists so that a handful of intents arriving together — a page
 	// reconnecting, or a vote followed at once by a reveal — is not mistaken for a
@@ -294,6 +332,7 @@ func TestTheSettingsAreIndependent(t *testing.T) {
 		envMaxParticipantsPerRoom: "13",
 		envMessageRate:            "14",
 		envLegalDir:               "/legal",
+		envPooThrows:              "true",
 	}))
 	if err != nil {
 		t.Fatalf("loadConfig: %v", err)
@@ -321,5 +360,8 @@ func TestTheSettingsAreIndependent(t *testing.T) {
 	}
 	if cfg.LegalDir != "/legal" {
 		t.Errorf("LegalDir = %q", cfg.LegalDir)
+	}
+	if !cfg.PooThrows {
+		t.Errorf("PooThrows = false")
 	}
 }

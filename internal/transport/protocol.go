@@ -93,6 +93,10 @@ type throwPolicyMessage struct {
 	RoomPerSecond        int `json:"roomPerSecond"`
 	MessagePerSecond     int `json:"messagePerSecond"`
 	MessageBurst         int `json:"messageBurst"`
+
+	// Objects lists what this server accepts, in picker order. The browser offers
+	// only these; the room still refuses anything else on its own.
+	Objects []string `json:"objects"`
 }
 
 type thrownMessage struct {

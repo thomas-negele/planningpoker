@@ -143,8 +143,8 @@ of what it does and what a boundary value means.
 The values governed by this rule are the network address the server listens on, the shutdown
 timeout described in the requirement below, the grace period after which an abandoned room is
 discarded, and the four capacity limits: the number of rooms the process will hold, the number of
-connections one room will hold, the number of participants one room will seat, and the rate at
-which one connection may send messages.
+connections one room will hold, the number of participants one room will seat, the rate at
+which one connection may send messages, and whether the pile of poo may be thrown.
 
 An unparseable or invalid value SHALL cause the process to fail at startup with a message naming
 the variable and the offending value, rather than silently falling back to the default — a
@@ -207,6 +207,17 @@ quota drops cosmetic work without closing the connection.
 - **WHEN** the application starts with any valid existing deployment configuration
 - **THEN** the throw ceilings remain 3 per participant and 12 per room per rolling second,
   documented as fixed constants, while the configured general message limit still applies
+
+The pile-of-poo switch `PLANNINGPOKER_POO_THROWS` is off by default. It accepts exactly `true` and
+`false`, and its explanation in the code and in `compose.yaml` SHALL say that it adds the pile of
+poo to every room's throw picker and that the other throwable objects do not depend on it.
+
+#### Scenario: The pile-of-poo switch is documented and off by default
+
+- **WHEN** an operator starts the supplied service without setting `PLANNINGPOKER_POO_THROWS`
+- **THEN** the pile of poo is disabled, and `compose.yaml` explains in full sentences what the
+  switch does and that it can be enabled by setting the variable, for example in an `.env` file
+  beside the Compose file
 
 ### Requirement: The process holds a bounded number of rooms and connections
 

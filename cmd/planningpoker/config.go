@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -28,6 +29,8 @@ const envMaxParticipantsPerRoom = "PLANNINGPOKER_MAX_PARTICIPANTS_PER_ROOM"
 const envMessageRate = "PLANNINGPOKER_MESSAGE_RATE"
 
 const envLegalDir = "PLANNINGPOKER_LEGAL_DIR"
+
+const envPooThrows = "PLANNINGPOKER_POO_THROWS"
 
 // Default capacity ceilings for a small deployment.
 const (
@@ -83,6 +86,12 @@ type config struct {
 	// set, both documents must be present at startup or the process refuses to start;
 	// they are read once, so edited text takes effect on the next restart.
 	LegalDir string
+
+	// PooThrows adds the pile of poo to the objects every room offers and accepts.
+	// Only "true" enables it; unset, empty or "false" leaves it off, and any other
+	// value stops the process. The other throwable objects do not depend on it, and a
+	// change takes effect on the next start.
+	PooThrows bool
 }
 
 // MessageBurst returns the per-connection burst allowance.
@@ -148,7 +157,28 @@ func loadConfig(getenv func(string) string) (config, error) {
 	// decided when they are loaded, so one place reports every reason they were refused.
 	cfg.LegalDir = getenv(envLegalDir)
 
+	if raw := getenv(envPooThrows); raw != "" {
+		on, err := parseSwitch(raw)
+		if err != nil {
+			return config{}, fmt.Errorf("%s=%q is not a valid switch: %w", envPooThrows, raw, err)
+		}
+		cfg.PooThrows = on
+	}
+
 	return cfg, nil
+}
+
+// parseSwitch accepts exactly the two documented values. strconv.ParseBool is not
+// used because it also accepts "1", "T" and others that compose.yaml does not name.
+func parseSwitch(raw string) (bool, error) {
+	switch raw {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, errors.New(`expected "true" or "false"`)
+	}
 }
 
 // parsePositiveCount rejects zero, negative and non-integer limits.

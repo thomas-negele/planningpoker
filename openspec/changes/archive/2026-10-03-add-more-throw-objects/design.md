@@ -51,7 +51,8 @@ rather than new machinery:
   an administration area. The owner asked for exactly one operator switch in the deployment
   configuration.
 - Splats, stains, particles, sound or any effect that outlives the object's fade.
-- Changing the existing three objects, the timings or the limits.
+- Changing the existing three objects' motion, the timings or the limits. Only where objects of
+  any kind rest on the narrow list changes.
 
 ## Decisions
 
@@ -73,10 +74,11 @@ operator reading `compose.yaml` would see two documented values while the progra
 more. Any other value stops the process with the variable and the value named, as every other
 setting does.
 
-The value travels from `main` into the room manager as the set of accepted objects, and
-`validThrowObject` checks against that set instead of a fixed `switch`. The hub stays the one place
-that decides; the transport layer copies the same set into the throw policy so the browser can
-build its picker from it. The browser never decides on its own whether the pile of poo exists, so
+The value travels from `main` into the room manager as `PooThrows` in `hub.Limits`, whose zero
+value means "off", so every existing caller and test stays valid unchanged. `Limits.ThrowObjects()`
+turns it into the ordered list of accepted objects. Each room checks requests against that list,
+and the transport layer advertises the same list in the throw policy, so what is offered and what
+is accepted cannot drift apart. The hub stays the one place that decides. The browser never decides on its own whether the pile of poo exists, so
 there is no second default to keep in step.
 
 The owner chose an environment variable over a managed setting in an administration area. The
@@ -106,8 +108,8 @@ family as the flower.
 
 The heart's palette is chosen as `seed % 7` from red, pink, orange, yellow, green, blue and purple.
 Each palette, like the flower's, defines a fill, a lighter highlight and a darker edge of the same
-hue. The edge keeps light colours such as yellow distinguishable against both the light and the
-dark table surface. Black, white, grey and brown hearts — all part of common emoji sets — are
+hue. The interface has only a dark colour scheme; each edge stays darker than its fill while
+reaching 3:1 against the darkest surfaces it lands on. Black, white, grey and brown hearts — all part of common emoji sets — are
 excluded because the owner asked for cheerful colours only.
 
 The picker shows the heart in red, regardless of any seed, so the choice is always recognisable as
@@ -151,10 +153,28 @@ change the pill's shape and push it further over the seat, and smaller buttons m
 targets worse on exactly the narrow screens where touch is used.
 
 Whether 11.7 rem fits is checked in the browser for the outermost seats of the wide table and for
-the narrow list at 320 pixels. If a picker at an outer table seat would cross the viewport edge, it
-opens towards the table's centre instead of being centred on its trigger — the narrow list already
-does the equivalent by anchoring to the right. The outcome of this check is recorded in the
-verification notes either way.
+the narrow list at 320 pixels. The trigger sits at a seat's right edge, so only the right side of
+the table can push a centred picker past the viewport: seats in the right third of the table
+(horizontal position above 0.5 of the table's half-width) end their picker at the seat's right
+edge and open towards the centre. The narrow list already does the equivalent by anchoring to the
+right. The measurements are recorded in the verification notes.
+
+### A landing zone per layout
+
+`createFlight` receives a landing zone — a rectangle — instead of the seat's bottom edge. Impact
+spread, slide and resting position stay inside it; a slide that would leave the zone ends at its
+edge.
+
+- **Wide table:** the zone is the band below the seat that today's constants describe, so flights
+  there are unchanged and the existing motion tests keep passing as they are.
+- **Narrow list:** the zone runs from the end of the target's name to the start of its row's
+  controls, vertically centred in the row. When it is narrower than the object, the object is
+  centred in it and does not spread.
+
+`ThrowLayer` measures the zone from the rendered row and chooses the layout by the same 58 rem
+breakpoint the CSS uses. Resting objects keep their offset within the zone, so they still follow
+their seat when the layout changes. Taller rows that leave room below each entry were rejected:
+they would lengthen the list for everyone to make space for a cosmetic effect.
 
 ## Risks / Trade-offs
 
@@ -164,8 +184,10 @@ verification notes either way.
   an environment variable; documented in `compose.yaml` and the README.
 - [Seven heart colours plus flower colours make the table busier] → Hearts and flowers share the
   existing fixed throw limits, so the number of objects on screen at once does not grow.
-- [A yellow heart on the light table could lack contrast] → The darker edge of each palette is
-  measured against both surfaces.
+- [A yellow heart on the dark table could lack edge contrast] → Each palette's edge is measured
+  against the picker and table surfaces.
+- [A long name on a 320 px list leaves little free space in the row] → The zone is measured, the
+  object is centred when the space is tight, and both name lengths are checked by screenshot.
 - [An open tab from before the update ignores the new objects] → Intended: it already discards
   objects it does not know, and a reload fixes it. Restarting the container for the update ends
   every open room anyway.

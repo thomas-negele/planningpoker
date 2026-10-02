@@ -47,6 +47,14 @@ services:
       # per rolling second; excess throws are dropped and do not close a connection.
       PLANNINGPOKER_MESSAGE_RATE: "${PLANNINGPOKER_MESSAGE_RATE:-10}"
 
+      # Adds the pile of poo to the objects participants can throw at each other, in
+      # every room on this server. Accepts exactly "true" or "false"; anything else stops
+      # the process at startup. It is off by default, and the paper ball, paper plane,
+      # flower and heart are always available regardless of this switch. To enable it,
+      # put PLANNINGPOKER_POO_THROWS=true in an .env file beside this file. A change takes
+      # effect when the container restarts, and a restart ends every open room.
+      PLANNINGPOKER_POO_THROWS: "${PLANNINGPOKER_POO_THROWS:-false}"
+
     # Container deadline before SIGKILL; keep longer than the application shutdown budget.
     stop_grace_period: 10s
 

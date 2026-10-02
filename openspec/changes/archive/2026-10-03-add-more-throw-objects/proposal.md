@@ -28,8 +28,15 @@ closely as possible to the familiar emoji.
   already receives before throwing is enabled.
 - Keep the wider picker within the existing layout rules: it must not alter seat geometry, obscure
   names, cards or controls, or leave the viewport on the wide table and the narrow list.
+- **Fix included in this change:** on the narrow participant list, an object of any kind comes to
+  rest 14–35 px below the target's row, which is the next participant's row, so a throw at the row
+  above appears to hit the thrower. Objects on the narrow list now rest inside the target's own
+  row, in the free space between the name and the row's controls. The wide table is unchanged. The
+  owner found this in a manual test; it belongs here because this change already revises the same
+  requirement.
 
-No existing object, timing, limit or delivery rule changes, and no existing protocol field changes;
+Apart from where objects rest on the narrow list, no existing object, timing, limit or delivery
+rule changes, and no existing protocol field changes;
 the throw policy only gains the list of accepted objects. A browser tab
 that was opened before the update and is still running the old page never offers the new objects
 and silently ignores hearts and piles of poo thrown by others, because it already discards objects
@@ -63,12 +70,15 @@ _None._
   path into the hub, and a list of objects in the throw policy (`internal/transport`), with the
   matching Go tests. Existing messages keep their fields; the throw policy gains one.
 - **Deployment:** `compose.yaml` gains the switch with its explanation; the README describes it.
-- **Frontend:** the shared object type (`web/src/lib/protocol.ts`), two new drawings and a heart
-  palette in `ThrowIcon.svelte`, two new choices in the picker (`Seat.svelte`), per-object motion
-  parameters and a brief scale effect for squash and pulse in `web/src/lib/throw-effects.ts`, and
-  the rendering layer that applies it (`ThrowLayer.svelte`).
-- **Tests:** Go tests for acceptance of the new objects; frontend unit tests for the new motion;
-  the Playwright smoke suite in `e2e/`, which currently expects three picker choices.
+- **Frontend:** the list of drawable objects, the policy check and the heart colours in a new
+  `web/src/lib/throw-objects.ts`, from which the shared object type is derived; two new drawings
+  in `ThrowIcon.svelte`; a picker built from the server's list (`Seat.svelte`); per-object motion
+  parameters, a brief scale effect for squash and pulse, and a landing zone per layout in
+  `web/src/lib/throw-effects.ts`; and the rendering layer that measures the zone and applies the
+  motion (`ThrowLayer.svelte`).
+- **Tests:** Go tests for the switch and the new objects; frontend unit tests for the object list,
+  heart colours and motion; the Playwright suite in `e2e/`, which runs against one server per
+  switch setting.
 - **Version:** `web/package.json` and its lock file, raised to 1.1.0.
 - No new dependencies, no external assets, no change to the Content-Security-Policy, and no
   settings beyond the one switch.

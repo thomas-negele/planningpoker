@@ -43,6 +43,7 @@ func NewManager(clock Clock, random io.Reader, grace time.Duration, limits Limit
 			Rooms:               max(limits.Rooms, 1),
 			ConnectionsPerRoom:  max(limits.ConnectionsPerRoom, 1),
 			ParticipantsPerRoom: max(limits.ParticipantsPerRoom, 1),
+			PooThrows:           limits.PooThrows,
 		}
 	}
 
@@ -54,6 +55,10 @@ func NewManager(clock Clock, random io.Reader, grace time.Duration, limits Limit
 		limits: limits,
 	}
 }
+
+// ThrowObjects lists the objects every room of this manager accepts. It never
+// changes after construction.
+func (m *Manager) ThrowObjects() []ThrowObject { return m.limits.ThrowObjects() }
 
 // Create starts an empty room. Creation grants no seat or host privileges.
 func (m *Manager) Create() (*Room, error) {
