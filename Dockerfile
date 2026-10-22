@@ -17,7 +17,7 @@ COPY web/ ./
 RUN npm run build
 
 # Go binary.
-FROM golang:1.27-alpine AS backend
+FROM golang:1.27.3-alpine AS backend
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -36,7 +36,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
       ./cmd/planningpoker
 
 # Minimal runtime without a shell or package manager.
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=backend /out/planningpoker /planningpoker
 
