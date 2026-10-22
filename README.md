@@ -110,7 +110,7 @@ naming it. Keep completed documents out of Git; `legal/` is already ignored.
 ## Development
 
 Requires Go matching [go.mod](go.mod) and Node.js with npm. The Docker build uses
-Go 1.27 and Node 26. From the repository root:
+Go 1.27.3 and Node 26. From the repository root:
 
 ```sh
 (cd web && npm ci)

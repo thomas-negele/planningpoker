@@ -262,7 +262,7 @@ what makes client-side routes like `/g/<room-id>` work on a hard page reload.
 
 The Docker image is a multi-stage build — a Node stage builds the frontend, a Go stage compiles the
 binary with `CGO_ENABLED=0` (no C dependencies, so the binary is fully static) and `-ldflags="-s -w"`
-(strips debug symbols to shrink it) — and the final stage is `gcr.io/distroless/static-debian12:nonroot`,
+(strips debug symbols to shrink it) — and the final stage is `gcr.io/distroless/static-debian13:nonroot`,
 an image containing no shell and no package manager, running as an unprivileged user. Expect a final
 image in the ~15 MB range. The result is a single container exposing a single port.
 
